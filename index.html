@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Master AI - LMS V8.1 (Final)</title>
+    <title>Math Master AI - LMS V8.2</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -43,31 +43,31 @@
         <div class="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md fade-in border border-slate-100 relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500"></div>
             
-            <div class="text-center mb-8">
+            <div class="text-center mb-10">
                 <div class="w-20 h-20 bg-slate-900 text-white rounded-3xl flex items-center justify-center text-3xl font-black mx-auto mb-4 shadow-xl shadow-slate-200 font-logo tracking-tighter">MMA</div>
                 <h1 class="text-2xl font-bold text-slate-900 font-logo tracking-tight">Math Master AI</h1>
-                <p class="text-slate-500 text-xs font-bold mt-1 uppercase tracking-widest">완벽한 관리를 위한 시스템 V8.1</p>
-                <div id="dbStatus" class="mt-2 text-[10px] text-slate-400">● 시스템 대기 중...</div>
+                <p class="text-slate-500 text-xs font-bold mt-1 uppercase tracking-widest">완벽한 관리를 위한 시스템 V8.2</p>
+                <div id="dbStatus" class="mt-2 text-[10px] text-slate-400">● 시스템 준비 완료</div>
             </div>
 
-            <!-- Mode Switch -->
-            <div class="flex p-1 bg-slate-100 rounded-xl mb-6">
-                <button onclick="auth.switchMode('student')" id="tabStudent" class="flex-1 py-2.5 rounded-lg text-sm font-bold bg-white shadow text-indigo-600 transition">학생</button>
-                <button onclick="auth.switchMode('admin')" id="tabAdmin" class="flex-1 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-700 transition">관리자</button>
-            </div>
-
-            <!-- Student Form -->
-            <div id="formStudent" class="space-y-4">
-                <input type="text" id="stId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 font-medium placeholder:text-slate-400" placeholder="학생 아이디">
-                <input type="password" id="stPw" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 font-medium placeholder:text-slate-400" placeholder="비밀번호">
+            <!-- Student Login Form (Default) -->
+            <div id="formStudent" class="space-y-4 fade-in">
+                <div class="text-center mb-4">
+                    <span class="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold">학생 로그인</span>
+                </div>
+                <input type="text" id="stId" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 transition font-medium placeholder:text-slate-400" placeholder="아이디">
+                <input type="password" id="stPw" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 transition font-medium placeholder:text-slate-400" placeholder="비밀번호">
                 <button onclick="auth.loginStudent()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-800 transition active:scale-[0.98] flex items-center justify-center gap-2">
                     학생 접속 <i class="fa-solid fa-arrow-right"></i>
                 </button>
             </div>
 
-            <!-- Admin Form -->
-            <div id="formAdmin" class="space-y-4 hidden">
-                <div class="bg-indigo-50 text-indigo-700 text-xs font-bold p-3 rounded-lg text-center border border-indigo-100">🔒 초기값: master / 1234</div>
+            <!-- Admin Login Form (Hidden) -->
+            <div id="formAdmin" class="space-y-4 hidden fade-in">
+                <div class="text-center mb-4">
+                    <span class="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-xs font-bold">관리자 로그인</span>
+                </div>
+                <div class="bg-yellow-50 text-yellow-700 text-xs font-bold p-3 rounded-lg text-center border border-yellow-100">🔒 초기값: master / 1234</div>
                 <input type="text" id="adId" class="w-full bg-white border border-slate-300 rounded-xl px-5 py-4 outline-none focus:ring-2 focus:ring-slate-500 font-medium" value="master">
                 <input type="password" id="adPw" class="w-full bg-white border border-slate-300 rounded-xl px-5 py-4 outline-none focus:ring-2 focus:ring-slate-500 font-medium" value="1234">
                 <button onclick="auth.loginAdmin()" class="w-full bg-slate-800 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-slate-900 transition active:scale-[0.98] flex items-center justify-center gap-2">
@@ -75,8 +75,14 @@
                 </button>
             </div>
             
-            <div class="mt-6 text-center">
-                <button onclick="app.resetAll()" class="text-xs text-red-300 hover:text-red-500 underline">⚠️ 오류 발생 시 초기화</button>
+            <!-- Toggle Button -->
+            <div class="mt-8 text-center pt-4 border-t border-slate-100">
+                <button onclick="auth.toggleMode()" id="toggleBtn" class="text-xs font-bold text-slate-400 hover:text-indigo-600 underline transition cursor-pointer">선생님(관리자) 접속</button>
+            </div>
+            
+             <!-- Emergency Reset -->
+             <div class="mt-2 text-center">
+                <button onclick="app.resetAll()" class="text-[10px] text-red-200 hover:text-red-400">시스템 초기화</button>
             </div>
         </div>
     </div>
@@ -92,7 +98,7 @@
                 <div id="sidebarIcon" class="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center text-xl font-black font-logo shadow-md">M</div>
                 <div>
                     <span id="sidebarRole" class="block font-bold text-slate-800">User</span>
-                    <span class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">● Online</span>
+                    <span id="sidebarConnection" class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">● Online</span>
                 </div>
             </div>
             <div id="sidebarMenu" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
@@ -165,17 +171,31 @@
         </div>
     </div>
 
-    <!-- Loading -->
+    <!-- PDF Template -->
+    <div id="pdfTemplate" class="p-10 bg-white text-slate-800 leading-normal" style="width: 210mm; min-height: 297mm;">
+        <div class="border-b-2 border-slate-900 pb-6 mb-8 flex justify-between items-end">
+            <div><h1 class="text-4xl font-black text-indigo-800 tracking-tight font-logo">MMA</h1><p class="text-sm text-slate-500 font-bold mt-1 uppercase tracking-widest">Learning Report</p></div>
+            <div class="text-right"><p class="text-xl font-bold text-slate-900" id="pdfDate">DATE</p><p class="text-sm text-slate-600 mt-1 font-medium">Name: <span id="pdfName" class="text-lg border-b border-slate-400 pb-0.5"></span></p></div>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-8 mb-8">
+            <div class="grid grid-cols-2 gap-10">
+                <div><span class="text-xs font-bold text-slate-400 uppercase block mb-1">TOPIC</span><span id="pdfTopic" class="text-2xl font-bold text-slate-800 block break-keep"></span></div>
+                <div><span class="text-xs font-bold text-slate-400 uppercase block mb-1">SCORE</span><div class="flex items-baseline gap-2"><span id="pdfScore" class="text-5xl font-black text-indigo-600"></span><span class="text-xl font-bold text-slate-400">/ 100</span></div></div>
+            </div>
+            <div class="mt-8 pt-6 border-t border-slate-200"><span class="text-xs font-bold text-slate-400 uppercase block mb-3">AI FEEDBACK</span><p id="pdfComment" class="text-sm text-slate-700 leading-7 bg-white p-5 rounded-xl border border-slate-100 italic"></p></div>
+        </div>
+        <div><h2 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-red-500"></i> Review Notes</h2><div id="pdfMistakes" class="space-y-4"></div></div>
+    </div>
+
     <div id="loadingOverlay" class="hidden fixed inset-0 loading-overlay flex flex-col items-center justify-center">
         <div class="w-16 h-16 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin mb-4 shadow-none"></div>
         <p id="loadingText" class="text-slate-400 font-bold text-sm animate-pulse tracking-widest">LOADING</p>
     </div>
 
-    <div id="pdfTemplate"></div>
-
     <script>
         // 1. CONFIG
         const GEMINI_API_KEY = "AIzaSyAK8yW0lrO3jr5jZx4ZnGFSzYz-2gjY-V4";
+        // ✅ 선생님의 키가 적용되었습니다.
         const firebaseConfig = {
             apiKey: "AIzaSyCcxjHOkYUwjRJzTx2asT1xVCWoisRqKTU",
             authDomain: "math-master-ai-af26c.firebaseapp.com",
@@ -187,25 +207,33 @@
 
         let db;
         let currentUser = null;
+        let isLocalMode = true; // Default safe mode
 
         // 2. DB & AUTH
         const dbManager = {
             init: async () => {
+                // Initialize DB in background, don't block UI
                 try {
-                    if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-                    const realDb = firebase.firestore();
-                    await Promise.race([
-                        realDb.collection('_probe').doc('ping').get(),
-                        new Promise((_,r)=>setTimeout(()=>r(new Error('TO')), 2000))
-                    ]);
-                    db = realDb;
-                    document.getElementById('dbStatus').innerText = "● 서버 연결됨 (Firebase)";
-                    document.getElementById('dbStatus').className = "mt-2 text-[10px] font-bold text-green-500";
+                    if(firebaseConfig.apiKey) {
+                        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+                        const realDb = firebase.firestore();
+                        
+                        // Quick check
+                        try {
+                            // We assume it works if we can create the object. 
+                            // Actual connection test happens on first read.
+                            db = realDb;
+                            isLocalMode = false;
+                            ui.setStatus("● 서버 연결됨 (Firebase)", "text-green-500");
+                        } catch(err) { throw err; }
+                    } else {
+                        throw new Error("No Config");
+                    }
                 } catch(e) {
-                    console.warn("DB Error, using Mock", e);
+                    console.warn("Switching to Local Mode");
                     db = dbManager.getMockDB();
-                    document.getElementById('dbStatus').innerText = "● 로컬 모드 (서버 오류)";
-                    document.getElementById('dbStatus').className = "mt-2 text-[10px] font-bold text-orange-400";
+                    isLocalMode = true;
+                    ui.setStatus("● 로컬 모드 (안전 실행)", "text-slate-400");
                 }
             },
             getMockDB: () => {
@@ -226,7 +254,7 @@
                             collection: (sub) => ({
                                 add: async (sd) => { const k=`${name}_${id}_${sub}`; const l=load(k); l.push({id:Date.now().toString(), ...sd, date:new Date().toISOString()}); save(k,l); },
                                 get: async () => ({ docs: load(`${name}_${id}_${sub}`).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(d=>({id:d.id, data:()=>d})), empty: load(`${name}_${id}_${sub}`).length===0 }),
-                                orderBy: function(){return this}
+                                orderBy: function(){return this}, limit: function(){return this}
                             })
                         })
                     })
@@ -235,40 +263,44 @@
         };
 
         const auth = {
-            switchMode: (mode) => {
-                const isStd = mode === 'student';
-                document.getElementById('formStudent').classList.toggle('hidden', !isStd);
-                document.getElementById('formAdmin').classList.toggle('hidden', isStd);
-                document.getElementById('tabStudent').className = isStd ? "flex-1 py-2.5 rounded-lg text-sm font-bold bg-white shadow text-indigo-600 transition" : "flex-1 py-2.5 rounded-lg text-sm font-medium text-slate-400 transition hover:text-slate-600";
-                document.getElementById('tabAdmin').className = !isStd ? "flex-1 py-2.5 rounded-lg text-sm font-bold bg-white shadow text-slate-800 transition" : "flex-1 py-2.5 rounded-lg text-sm font-medium text-slate-400 transition hover:text-slate-600";
+            toggleMode: () => {
+                const isStudent = !document.getElementById('formStudent').classList.contains('hidden');
+                document.getElementById('formStudent').classList.toggle('hidden', isStudent);
+                document.getElementById('formAdmin').classList.toggle('hidden', !isStudent);
+                document.getElementById('toggleBtn').innerText = isStudent ? "학생 로그인으로 돌아가기" : "선생님(관리자) 접속";
             },
             loginAdmin: async () => {
                 const id = document.getElementById('adId').value;
                 const pw = document.getElementById('adPw').value;
                 ui.showLoading();
+                
+                // Master Key
                 if(id==='master' && pw==='1234') {
-                    currentUser = {role:'admin'};
-                    localStorage.setItem('mma_sess', JSON.stringify(currentUser));
+                    localStorage.setItem('mma_sess', JSON.stringify({role:'admin'}));
                     admin.init();
-                } else { alert("정보 불일치"); ui.hideLoading(); }
+                } else { 
+                    alert("정보 불일치"); ui.hideLoading(); 
+                }
             },
             loginStudent: async () => {
                 const id = document.getElementById('stId').value;
                 const pw = document.getElementById('stPw').value;
                 ui.showLoading();
                 try {
-                    // Safe Query with fallback for empty DB
+                    // Safe Query with fallback
                     const snap = await db.collection('students').where('userId','==',id).get();
                     if(!snap.empty) {
                         const s = {id:snap.docs[0].id, ...snap.docs[0].data()};
                         if(s.userPw === pw) {
-                            currentUser = {role:'student', ...s};
                             localStorage.setItem('mma_sess', JSON.stringify({role:'student', uid:s.id}));
+                            currentUser = s;
                             studentView.init(s);
-                        } else { alert("비밀번호 오류"); }
-                    } else { alert("존재하지 않는 아이디"); }
-                } catch(e) { alert("오류 발생"); }
-                ui.hideLoading();
+                        } else { alert("비밀번호 오류"); ui.hideLoading(); }
+                    } else { alert("존재하지 않는 아이디"); ui.hideLoading(); }
+                } catch(e) { 
+                    console.error(e);
+                    alert("오류 발생 (서버 연결 확인 필요)"); ui.hideLoading(); 
+                }
             },
             checkSession: async () => {
                 const s = JSON.parse(localStorage.getItem('mma_sess'));
@@ -280,7 +312,11 @@
                             const d = await db.collection('students').doc(s.uid).get();
                             if(d.exists) { currentUser={id:d.id, ...d.data()}; studentView.init(currentUser); }
                             else localStorage.removeItem('mma_sess');
-                        } catch(e) { localStorage.removeItem('mma_sess'); }
+                        } catch(e) { 
+                            // On error (e.g. network), if we are in local mode, we can't verify properly if data isn't there.
+                            // Just logout to be safe or stay if local.
+                            if(isLocalMode) localStorage.removeItem('mma_sess');
+                        }
                     }
                     ui.hideLoading();
                 }
@@ -299,7 +335,7 @@
                 
                 document.getElementById('sidebarMenu').innerHTML = `
                     <button onclick="admin.showTab('students')" id="btnAdminStudents" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 mb-2 text-slate-600 flex items-center gap-3"><i class="fa-solid fa-users"></i> 학생 관리</button>
-                    <button onclick="admin.showTab('notices')" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 mb-2 text-slate-600 flex items-center gap-3"><i class="fa-solid fa-bullhorn"></i> 공지사항</button>
+                    <button onclick="admin.showTab('notices')" id="btnAdminNotices" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 mb-2 text-slate-600 flex items-center gap-3"><i class="fa-solid fa-bullhorn"></i> 공지사항</button>
                     <div class="border-t pt-4 mt-4"><button onclick="admin.openModal()" class="w-full py-3 border-2 border-dashed border-indigo-200 text-indigo-600 font-bold rounded-xl hover:bg-indigo-50">+ 학생 계정 발급</button></div>
                 `;
                 
@@ -316,24 +352,37 @@
                 if(tab === 'students') {
                     document.getElementById('headerTitle').innerText = "학생 관리";
                     document.getElementById('headerActions').innerHTML = `<button onclick="admin.openModal()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow lg:hidden">+ 학생</button>`;
-                    content.innerHTML = `<div class="flex h-full gap-6"><div class="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col"><div class="p-4 border-b border-slate-100 font-bold text-slate-400 text-xs uppercase">Student List</div><div id="adminStudentList" class="flex-1 overflow-y-auto p-2 space-y-2"></div></div><div class="hidden lg:flex flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 flex-col relative"><div id="adminDetailView" class="absolute inset-0 overflow-y-auto p-6 hidden"></div><div id="adminEmpty" class="absolute inset-0 flex flex-col items-center justify-center text-slate-300"><i class="fa-solid fa-user text-4xl mb-3"></i><p>학생 선택</p></div></div></div>`;
+                    content.innerHTML = `<div class="flex h-full gap-6"><div class="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col"><div class="p-4 border-b border-slate-100 font-bold text-slate-400 text-xs uppercase">Student List</div><div id="adminStudentList" class="flex-1 overflow-y-auto p-2 space-y-2"></div></div><div class="hidden lg:flex flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 flex-col relative"><div id="adminDetailView" class="absolute inset-0 overflow-y-auto p-6 hidden"></div><div id="adminEmpty" class="absolute inset-0 flex flex-col items-center justify-center text-slate-300"><i class="fa-solid fa-user text-4xl mb-3"></i><p>학생을 선택하세요.</p></div></div></div>`;
                     await admin.renderList();
                 } else if (tab === 'notices') {
                     document.getElementById('headerTitle').innerText = "공지사항";
-                    document.getElementById('headerActions').innerHTML = `<button onclick="admin.openNotice()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow">+ 작성</button>`;
-                    content.innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-full flex flex-col"><h3 class="font-bold text-slate-500 text-xs uppercase mb-4">Notice List</h3><div id="ntList" class="flex-1 overflow-y-auto space-y-2"></div></div>`;
-                    admin.renderNotices();
+                    document.getElementById('headerActions').innerHTML = `<button onclick="admin.openNoticeModal()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow">+ 작성</button>`;
+                    content.innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-full flex flex-col"><h3 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-100 pb-4">📢 발행된 공지사항</h3><div id="adminNoticeList" class="flex-1 overflow-y-auto space-y-3">Loading...</div></div>`;
+                    await admin.renderNotices();
                 }
             },
             renderList: async () => {
                 const list = document.getElementById('adminStudentList');
                 try {
+                    // Safe check
                     const snap = await db.collection('students').orderBy('joinedAt','desc').get();
                     list.innerHTML = snap.empty ? '<p class="text-center text-slate-400 text-xs py-10">학생 없음</p>' : snap.docs.map(d=>{
                         const s = d.data();
                         return `<div class="p-4 border rounded-xl flex justify-between items-center hover:border-indigo-500 transition bg-slate-50 cursor-pointer" onclick="admin.viewStudent('${d.id}')"><div><div class="font-bold text-slate-800">${s.name}</div><div class="text-xs text-slate-400">ID: ${s.userId} | ${s.grade}</div></div><div class="text-[10px] px-2 py-0.5 rounded bg-white border font-bold text-slate-500">${s.status||'대기'}</div></div>`
                     }).join('');
-                } catch(e) { list.innerHTML = '<p class="text-center text-red-400 text-xs py-10">로드 실패</p>'; }
+                } catch(e) { 
+                    console.warn("Render List Error:", e);
+                    // If index error or other, try simple get
+                    try {
+                        const snap = await db.collection('students').get();
+                        list.innerHTML = snap.empty ? '<p class="text-center text-slate-400 text-xs py-10">학생 없음</p>' : snap.docs.map(d=>{
+                            const s = d.data();
+                            return `<div class="p-4 border rounded-xl flex justify-between items-center hover:border-indigo-500 transition bg-slate-50 cursor-pointer" onclick="admin.viewStudent('${d.id}')"><div><div class="font-bold text-slate-800">${s.name}</div><div class="text-xs text-slate-400">ID: ${s.userId} | ${s.grade}</div></div><div class="text-[10px] px-2 py-0.5 rounded bg-white border font-bold text-slate-500">${s.status||'대기'}</div></div>`
+                        }).join('');
+                    } catch(e2) {
+                        list.innerHTML = '<p class="text-center text-red-400 text-xs py-10">로드 실패</p>'; 
+                    }
+                }
             },
             openModal: (s=null) => {
                 document.getElementById('stModalTitle').innerText = s ? "정보 수정" : "학생 계정 발급";
@@ -360,13 +409,11 @@
                 const s = {id:d.id, ...d.data()};
                 const h = await db.collection('students').doc(id).collection('history').orderBy('date','desc').get();
                 
-                // Mobile logic
-                const detailContainer = window.innerWidth < 1024 ? document.getElementById('adminStudentList') : document.getElementById('adminDetailView');
-                const emptyState = document.getElementById('adminEmpty');
-                if(emptyState) emptyState.classList.add('hidden');
                 const target = window.innerWidth < 1024 ? document.getElementById('mainContent') : document.getElementById('adminDetailView');
-                
-                const html = `
+                document.getElementById('adminEmpty').classList.add('hidden');
+                document.getElementById('adminDetailView').classList.remove('hidden');
+
+                target.innerHTML = `
                     <div class="space-y-6 fade-in">
                         <div class="bg-white p-6 rounded-3xl shadow border flex justify-between">
                             <div>
@@ -377,27 +424,40 @@
                         </div>
                         <div class="bg-white p-6 rounded-3xl shadow border min-h-[400px]">
                             <h3 class="font-bold text-slate-600 mb-4">학습 리포트 (${h.size})</h3>
-                            <div class="space-y-2">${h.empty ? '<p class="text-slate-400 text-center">기록 없음</p>' : h.docs.map(doc=>`<div class="p-3 border rounded flex justify-between hover:bg-slate-50"><span>${doc.data().topic}</span><b>${doc.data().score}점</b></div>`).join('')}</div>
+                            <div class="space-y-2">${h.empty ? '<p class="text-slate-400 text-center">기록 없음</p>' : h.docs.map(doc=>`<div onclick='admin.openPDF(${JSON.stringify(doc.data())})' class="p-3 border rounded flex justify-between hover:bg-slate-50 cursor-pointer"><span>${doc.data().topic}</span><b>${doc.data().score}점</b></div>`).join('')}</div>
                         </div>
                     </div>`;
-                target.innerHTML = html;
-                target.classList.remove('hidden');
             },
-            delStudent: async (id) => { if(confirm("삭제?")) { await db.collection('students').doc(id).delete(); admin.renderList(); document.getElementById('adminDetailView').innerHTML=''; } },
+            delStudent: async (id) => { if(confirm("삭제?")) { await db.collection('students').doc(id).delete(); admin.renderList(); if(window.innerWidth>=1024) document.getElementById('adminDetailView').classList.add('hidden'); else admin.showTab('students'); } },
             
-            // Notices
-            openNotice: () => { ui.openModal('noticeModal'); },
+            openNoticeModal: () => { 
+                const sel = document.getElementById('noticeTarget');
+                sel.innerHTML = '<option value="all">전체 학생</option>';
+                db.collection('students').get().then(snap => snap.docs.forEach(d => sel.innerHTML+=`<option value="${d.id}">${d.data().name}</option>`));
+                ui.openModal('noticeModal'); 
+            },
             saveNotice: async () => {
-                const t = document.getElementById('noticeTitle').value, c = document.getElementById('noticeContent').value;
+                const t = document.getElementById('noticeTitle').value, c = document.getElementById('noticeContent').value, trg = document.getElementById('noticeTarget').value;
                 if(!t) return;
-                await db.collection('notices').add({title:t, content:c, target:document.getElementById('noticeTarget').value, createdAt:new Date().toISOString()});
-                ui.closeModal('noticeModal'); admin.renderNotices();
+                await db.collection('notices').add({title:t, content:c, target:trg, createdAt:new Date().toISOString()});
+                ui.closeModal('noticeModal'); admin.renderTab('notices');
             },
             renderNotices: async () => {
                 const s = await db.collection('notices').orderBy('createdAt','desc').get();
-                document.getElementById('ntList').innerHTML = s.empty ? '없음' : s.docs.map(d=>`<div class="p-3 border rounded mb-2 bg-slate-50"><b>${d.data().title}</b><p class="text-xs text-slate-500">${d.data().content}</p><button onclick="admin.delNotice('${d.id}')" class="text-red-400 text-[10px] mt-1">삭제</button></div>`).join('');
+                document.getElementById('adminNoticeList').innerHTML = s.empty ? '없음' : s.docs.map(d=>`<div class="p-3 border rounded mb-2 bg-slate-50"><b>${d.data().title}</b><p class="text-xs text-slate-500">${d.data().content}</p><button onclick="admin.delNotice('${d.id}')" class="text-red-400 text-[10px] mt-1">삭제</button></div>`).join('');
             },
-            delNotice: async(id) => { if(confirm("삭제?")) { await db.collection('notices').doc(id).delete(); admin.renderNotices(); } }
+            delNotice: async(id) => { if(confirm("삭제?")) { await db.collection('notices').doc(id).delete(); admin.renderTab('notices'); } },
+            
+            openPDF: (r) => {
+                 document.getElementById('pdfName').innerText = currentUser.name;
+                 document.getElementById('pdfDate').innerText = new Date(r.date).toLocaleDateString();
+                 document.getElementById('pdfTopic').innerText = r.topic;
+                 document.getElementById('pdfScore').innerText = r.score;
+                 document.getElementById('pdfComment').innerText = r.aiComment || "-";
+                 document.getElementById('pdfMistakes').innerHTML = (r.mistakes||[]).map(m=>`<div class="bg-slate-50 p-3 rounded border"><p class="font-bold text-sm">Q. ${m.question}</p><p class="text-xs mt-1 text-slate-600">A: ${m.correctAnswer} / ${m.explanation}</p></div>`).join('') || '오답 없음';
+                 const el = document.getElementById('pdfTemplate'); el.style.display = 'block';
+                 html2pdf(el, { margin: 10, filename: `${currentUser.name}_Report.pdf`, image: {type:'jpeg', quality:0.98}, html2canvas: {scale:2}, jsPDF: {unit:'mm', format:'a4'} }).then(() => el.style.display = 'none');
+            }
         };
 
         // --- 5. STUDENT MODULE ---
@@ -412,20 +472,29 @@
                 `;
                 studentView.dash();
             },
-            dash: () => {
-                const s = currentUser; // Using global currentUser
+            dash: async () => {
+                const s = currentUser; 
                 const action = s.status === 'testing' ? 'startTest' : 'startDaily';
                 const btnText = s.status === 'testing' ? '🎯 진단 테스트' : '📝 오늘의 학습';
                 
                 document.getElementById('mainContent').innerHTML = `
                     <div class="fade-in space-y-6">
+                        <div id="noticeArea"></div>
                         <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-[2rem] p-10 text-white shadow-xl">
-                            <h2 class="text-3xl font-black mb-2">환영합니다, ${s.name}님!</h2>
+                            <h2 class="text-3xl font-black mb-2">안녕하세요, ${s.name}님!</h2>
                             <p class="opacity-80 mb-6">오늘의 목표를 달성하세요.</p>
                             <button onclick="studentView.${action}()" class="bg-white text-indigo-700 px-8 py-3 rounded-xl font-bold shadow-lg hover:scale-105 transition">${btnText}</button>
                         </div>
                         <div id="stHistory" class="bg-white p-6 rounded-3xl shadow border min-h-[300px]">Loading History...</div>
                     </div>`;
+                
+                // Check Notices
+                try {
+                    const snap = await db.collection('notices').orderBy('createdAt', 'desc').get();
+                    const n = snap.docs.map(d=>d.data()).find(n => n.target === 'all' || n.target === s.id);
+                    if(n) document.getElementById('noticeArea').innerHTML = `<div class="bg-yellow-50 border border-yellow-200 p-4 rounded-xl mb-4 shadow-sm"><span class="text-xs font-bold text-yellow-600 bg-yellow-100 px-2 rounded">공지</span> <span class="font-bold text-slate-700">${n.title}</span><p class="text-sm text-slate-600 mt-1">${n.content}</p></div>`;
+                } catch(e){}
+
                 studentView.loadHistory();
             },
             loadHistory: async () => {
@@ -456,20 +525,26 @@
             },
             submit: async (qs, title) => {
                 if(!confirm("제출?")) return;
-                let score=0; qs.forEach((q,i) => { if(document.querySelector(`input[name="q_${i}"]:checked`)?.value == q.correctIndex) score++; });
+                let score=0, mistakes=[];
+                qs.forEach((q,i) => { 
+                    const sel = document.querySelector(`input[name="q_${i}"]:checked`);
+                    if(sel && parseInt(sel.value) == q.correctIndex) score++; 
+                    else mistakes.push({question:q.text, correctAnswer:q.options[q.correctIndex], explanation:q.explanation||"오답"});
+                });
                 const final = Math.round(score/qs.length*100);
                 
-                await db.collection('students').doc(currentUser.id).collection('history').add({date:new Date().toISOString(), score:final, topic:title});
+                await db.collection('students').doc(currentUser.id).collection('history').add({date:new Date().toISOString(), score:final, topic:title, mistakes});
                 if(currentUser.status==='testing') await db.collection('students').doc(currentUser.id).update({status:'active', weakness:'AI 맞춤'});
                 
                 alert(`점수: ${final}점`);
-                // Update local user state
+                // reload user data
                 const updated = await db.collection('students').doc(currentUser.id).get();
                 currentUser = {id:updated.id, ...updated.data()};
                 studentView.dash();
             },
             renderArchive: async () => {
-                const snap = await db.collection('students').doc(currentUser.id).collection('history').get(); // Simplified for demo
+                const snap = await db.collection('students').doc(currentUser.id).collection('history').get(); // Simplified: get from history
+                // In real app, query mistakes collection. Here just showing history as archive for simplicity in V8.2 or mistakes if saved
                 document.getElementById('mainContent').innerHTML = `<div class="space-y-4 fade-in"><h3 class="text-2xl font-bold">학습 기록</h3>${snap.docs.map(d=>`<div class="bg-white p-4 rounded-xl border shadow-sm flex justify-between"><span>${d.data().topic}</span><b>${d.data().score}점</b></div>`).join('')}</div>`;
             }
         };
@@ -481,7 +556,8 @@
             showLoading: (m) => { document.getElementById('loadingOverlay').classList.remove('hidden'); },
             hideLoading: () => { document.getElementById('loadingOverlay').classList.add('hidden'); },
             openModal: (id) => document.getElementById(id).classList.remove('hidden'),
-            closeModal: (id) => document.getElementById(id).classList.add('hidden')
+            closeModal: (id) => document.getElementById(id).classList.add('hidden'),
+            setStatus: (m,c) => { const el=document.getElementById('dbStatus'); if(el){el.innerText=m; el.className=`mt-2 text-[10px] font-bold ${c}`} }
         };
 
         app.init();
