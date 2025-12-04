@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Math Master AI - 독립형</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Montserrat:wght@800&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f1f5f9; -webkit-tap-highlight-color: transparent; }
+        .logo-font { font-family: 'Montserrat', sans-serif; letter-spacing: -0.05em; }
+        .hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="h-screen flex flex-col text-slate-800 overflow-hidden">
+
+    <!-- 1. LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 z-50 bg-slate-50 flex items-center justify-center p-4">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md fade-in text-center">
+            <div class="w-20 h-20 bg-slate-900 text-white rounded-3xl flex items-center justify-center text-3xl font-black mx-auto mb-6 shadow-xl logo-font">M</div>
+            <h1 class="text-2xl font-bold mb-2 logo-font">Math Master AI</h1>
+            <p class="text-slate-500 text-sm mb-8">서버 설정이 필요 없는 독립형 버전</p>
+
+            <div class="bg-slate-100 p-1 rounded-xl flex mb-6">
+                <button onclick="app.setTab('student')" id="tabStudent" class="flex-1 py-3 rounded-lg text-sm font-bold bg-white shadow text-indigo-600 transition">학생</button>
+                <button onclick="app.setTab('admin')" id="tabAdmin" class="flex-1 py-3 rounded-lg text-sm font-bold text-slate-400 hover:text-slate-600 transition">관리자</button>
+            </div>
+
+            <!-- Student Form -->
+            <div id="formStudent" class="space-y-4">
+                <input type="text" id="stId" class="w-full border-2 border-slate-100 rounded-xl p-4 font-medium outline-none focus:border-indigo-500" placeholder="아이디 입력">
+                <input type="password" id="stPw" class="w-full border-2 border-slate-100 rounded-xl p-4 font-medium outline-none focus:border-indigo-500" placeholder="비밀번호 입력">
+                <button onclick="app.loginStudent()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold shadow-lg transition active:scale-95">입장하기</button>
+            </div>
+
+            <!-- Admin Form -->
+            <div id="formAdmin" class="space-y-4 hidden">
+                <div class="p-3 bg-yellow-50 text-yellow-700 text-xs font-bold rounded-lg mb-2"> 초기 아이디: master / 비번: 1234</div>
+                <input type="text" id="adId" class="w-full border-2 border-slate-100 rounded-xl p-4 font-medium outline-none focus:border-slate-500" value="master">
+                <input type="password" id="adPw" class="w-full border-2 border-slate-100 rounded-xl p-4 font-medium outline-none focus:border-slate-500" value="1234">
+                <button onclick="app.loginAdmin()" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold shadow-lg transition active:scale-95">관리자 접속</button>
+            </div>
+            
+            <button onclick="app.resetSystem()" class="mt-8 text-xs text-red-300 underline hover:text-red-500">데이터 초기화</button>
+        </div>
+    </div>
+
+    <!-- 2. ADMIN DASHBOARD -->
+    <div id="adminScreen" class="hidden h-full flex bg-slate-100">
+        <aside class="w-64 bg-white shadow-xl z-10 flex flex-col">
+            <div class="p-6 border-b flex items-center gap-3">
+                <div class="w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center font-bold">A</div>
+                <span class="font-bold">관리자 모드</span>
+            </div>
+            <div class="p-4 flex-1">
+                <div id="studentList" class="space-y-2"></div>
+                <button onclick="admin.openModal()" class="mt-4 w-full py-3 border-2 border-dashed border-indigo-300 text-indigo-500 font-bold rounded-xl hover:bg-indigo-50 transition">+ 학생 추가</button>
+            </div>
+            <div class="p-4 border-t">
+                <button onclick="location.reload()" class="w-full py-2 text-xs font-bold text-slate-400 hover:text-red-500">로그아웃</button>
+            </div>
+        </aside>
+        <main class="flex-1 p-8 overflow-y-auto">
+            <div id="adminContent" class="h-full flex flex-col items-center justify-center text-slate-400">
+                <i class="fa-solid fa-user-gear text-4xl mb-4"></i>
+                <p>왼쪽 메뉴에서 학생을 선택하거나 추가하세요.</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- 3. STUDENT DASHBOARD -->
+    <div id="studentScreen" class="hidden h-full flex flex-col bg-indigo-50">
+        <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 z-10">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-indigo-600 text-white rounded-lg flex items-center justify-center font-bold">S</div>
+                <span id="studentNameDisplay" class="font-bold text-slate-700">학생</span>
+            </div>
+            <button onclick="location.reload()" class="text-xs font-bold text-slate-400 hover:text-red-500">로그아웃</button>
+        </header>
+        <main class="flex-1 p-6 overflow-y-auto max-w-4xl mx-auto w-full space-y-6">
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-8 text-white shadow-xl">
+                <h2 class="text-2xl font-bold mb-2">오늘의 학습</h2>
+                <p class="opacity-90 mb-6 text-sm">AI 맞춤형 문제가 준비되었습니다.</p>
+                <button onclick="student.startStudy()" class="bg-white text-indigo-700 px-6 py-3 rounded-xl font-bold shadow-lg hover:scale-105 transition">학습 시작하기 ▶</button>
+            </div>
+            <div class="bg-white p-6 rounded-3xl shadow-sm">
+                <h3 class="font-bold text-slate-700 mb-4">학습 기록</h3>
+                <div id="studyHistory" class="space-y-2 text-sm text-slate-500">기록이 없습니다.</div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ADD STUDENT MODAL -->
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4">
+            <h3 class="font-bold text-lg">학생 추가</h3>
+            <input type="text" id="newId" class="w-full border p-2 rounded" placeholder="아이디">
+            <input type="text" id="newPw" class="w-full border p-2 rounded" placeholder="비밀번호">
+            <input type="text" id="newName" class="w-full border p-2 rounded" placeholder="이름">
+            <div class="flex justify-end gap-2">
+                <button onclick="document.getElementById('modal').classList.add('hidden')" class="px-4 py-2 text-slate-500">취소</button>
+                <button onclick="admin.addStudent()" class="px-4 py-2 bg-indigo-600 text-white rounded font-bold">추가</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. LOCAL DATABASE SYSTEM (No Firebase, No Errors) ---
+        const db = {
+            data: JSON.parse(localStorage.getItem('mma_data') || '{"students":[], "history":[]}'),
+            save: () => localStorage.setItem('mma_data', JSON.stringify(db.data)),
+            addStudent: (s) => { db.data.students.push(s); db.save(); },
+            addHistory: (h) => { db.data.history.push(h); db.save(); },
+            getStudent: (id) => db.data.students.find(s => s.id === id),
+            getHistory: (id) => db.data.history.filter(h => h.studentId === id)
+        };
+
+        // --- 2. APP LOGIC ---
+        const app = {
+            setTab: (mode) => {
+                document.getElementById('formStudent').classList.toggle('hidden', mode !== 'student');
+                document.getElementById('formAdmin').classList.toggle('hidden', mode !== 'admin');
+                document.getElementById('tabStudent').className = mode === 'student' ? 'flex-1 py-3 rounded-lg text-sm font-bold bg-white shadow text-indigo-600 transition' : 'flex-1 py-3 rounded-lg text-sm font-bold text-slate-400 hover:text-slate-600 transition';
+                document.getElementById('tabAdmin').className = mode === 'admin' ? 'flex-1 py-3 rounded-lg text-sm font-bold bg-white shadow text-slate-800 transition' : 'flex-1 py-3 rounded-lg text-sm font-bold text-slate-400 hover:text-slate-600 transition';
+            },
+            loginAdmin: () => {
+                const id = document.getElementById('adId').value;
+                const pw = document.getElementById('adPw').value;
+                if(id === 'master' && pw === '1234') {
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('adminScreen').classList.remove('hidden');
+                    admin.render();
+                } else alert('정보가 틀렸습니다. (master / 1234)');
+            },
+            loginStudent: () => {
+                const id = document.getElementById('stId').value;
+                const pw = document.getElementById('stPw').value;
+                const s = db.getStudent(id);
+                if(s && s.pw === pw) {
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('studentScreen').classList.remove('hidden');
+                    student.init(s);
+                } else alert('학생 정보를 찾을 수 없습니다. 관리자에게 문의하세요.');
+            },
+            resetSystem: () => {
+                if(confirm("모든 데이터를 삭제하시겠습니까?")) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            }
+        };
+
+        // --- 3. ADMIN LOGIC ---
+        const admin = {
+            render: () => {
+                const list = document.getElementById('studentList');
+                list.innerHTML = db.data.students.map(s => `
+                    <div class="p-3 bg-white border border-slate-200 rounded-lg flex justify-between items-center">
+                        <div>
+                            <span class="font-bold text-slate-700">${s.name}</span>
+                            <span class="text-xs text-slate-400 block">ID: ${s.id} | PW: ${s.pw}</span>
+                        </div>
+                        <button onclick="admin.viewReport('${s.id}')" class="text-xs bg-slate-100 px-2 py-1 rounded">기록</button>
+                    </div>
+                `).join('') || '<div class="text-center text-slate-400 text-xs py-4">등록된 학생이 없습니다.</div>';
+            },
+            openModal: () => document.getElementById('modal').classList.remove('hidden'),
+            addStudent: () => {
+                const id = document.getElementById('newId').value;
+                const pw = document.getElementById('newPw').value;
+                const name = document.getElementById('newName').value;
+                if(!id || !pw || !name) return alert("모두 입력해주세요");
+                
+                db.addStudent({id, pw, name});
+                document.getElementById('modal').classList.add('hidden');
+                admin.render();
+                alert(`학생 [${name}] 등록 완료!`);
+            },
+            viewReport: (id) => {
+                const s = db.getStudent(id);
+                const h = db.getHistory(id);
+                const content = document.getElementById('adminContent');
+                content.className = "h-full bg-white p-8 overflow-y-auto";
+                content.innerHTML = `
+                    <h2 class="text-2xl font-bold mb-4">${s.name} 학생 리포트</h2>
+                    <div class="space-y-3">
+                        ${h.length ? h.map(r => `
+                            <div class="border p-4 rounded-xl">
+                                <div class="flex justify-between mb-2">
+                                    <span class="font-bold">${r.date}</span>
+                                    <span class="text-indigo-600 font-bold">${r.score}점</span>
+                                </div>
+                                <p class="text-sm text-slate-500">${r.summary}</p>
+                            </div>
+                        `).join('') : '<p class="text-slate-400">학습 기록이 없습니다.</p>'}
+                    </div>
+                `;
+            }
+        };
+
+        // --- 4. STUDENT LOGIC ---
+        const student = {
+            current: null,
+            init: (s) => {
+                student.current = s;
+                document.getElementById('studentNameDisplay').innerText = s.name;
+                const h = db.getHistory(s.id);
+                document.getElementById('studyHistory').innerHTML = h.length ? h.map(r => `
+                    <div class="flex justify-between py-2 border-b last:border-0 border-slate-100">
+                        <span>${r.date}</span>
+                        <span class="font-bold text-indigo-600">${r.score}점</span>
+                    </div>`).join('') : '아직 기록이 없습니다.';
+            },
+            startStudy: () => {
+                // Mock Study Session
+                const score = Math.floor(Math.random() * 40) + 60; // Random score 60-100
+                const today = new Date().toLocaleDateString();
+                
+                if(confirm(`오늘의 학습을 시작하시겠습니까?\n(AI 문제 생성 시뮬레이션)`)) {
+                    alert(`학습 완료!\n점수: ${score}점\n\n결과가 선생님께 전송되었습니다.`);
+                    db.addHistory({
+                        studentId: student.current.id,
+                        date: today,
+                        score: score,
+                        summary: `AI 맞춤형 학습 완료. 성취도 ${score}%`
+                    });
+                    location.reload();
+                }
+            }
+        };
+    </script>
+</body>
+</html>
