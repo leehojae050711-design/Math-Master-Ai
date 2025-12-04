@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Master AI - LMS V8.0 (Final)</title>
+    <title>Math Master AI - LMS V8.1 (Final)</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -46,7 +46,7 @@
             <div class="text-center mb-8">
                 <div class="w-20 h-20 bg-slate-900 text-white rounded-3xl flex items-center justify-center text-3xl font-black mx-auto mb-4 shadow-xl shadow-slate-200 font-logo tracking-tighter">MMA</div>
                 <h1 class="text-2xl font-bold text-slate-900 font-logo tracking-tight">Math Master AI</h1>
-                <p class="text-slate-500 text-xs font-bold mt-1 uppercase tracking-widest">완벽한 관리를 위한 시스템 V8.0</p>
+                <p class="text-slate-500 text-xs font-bold mt-1 uppercase tracking-widest">완벽한 관리를 위한 시스템 V8.1</p>
                 <div id="dbStatus" class="mt-2 text-[10px] text-slate-400">● 시스템 대기 중...</div>
             </div>
 
@@ -86,6 +86,7 @@
         <!-- Mobile Sidebar Overlay -->
         <div id="sidebarOverlay" onclick="ui.toggleSidebar()" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden backdrop-blur-sm transition-opacity"></div>
 
+        <!-- Sidebar -->
         <aside id="mainSidebar" class="fixed inset-y-0 left-0 w-72 bg-white border-r border-slate-200 flex flex-col shadow-2xl z-40 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-in-out">
             <div class="p-6 h-24 flex items-center gap-3 border-b border-slate-100">
                 <div id="sidebarIcon" class="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center text-xl font-black font-logo shadow-md">M</div>
@@ -193,7 +194,6 @@
                 try {
                     if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
                     const realDb = firebase.firestore();
-                    // Test connection
                     await Promise.race([
                         realDb.collection('_probe').doc('ping').get(),
                         new Promise((_,r)=>setTimeout(()=>r(new Error('TO')), 2000))
@@ -210,21 +210,22 @@
             },
             getMockDB: () => {
                 const ls = localStorage;
-                const load = (k) => JSON.parse(ls.getItem('mma_'+k)||'[]');
-                const save = (k,v) => ls.setItem('mma_'+k, JSON.stringify(v));
+                const load = (k) => { try { return JSON.parse(ls.getItem('mma_'+k) || '[]'); } catch(e){ return []; } };
+                const save = (k, v) => ls.setItem('mma_'+k, JSON.stringify(v));
+                
                 return {
                     collection: (name) => ({
-                        add: async(d) => { const l=load(name); const id=Date.now().toString(); l.push({id,...d, createdAt:new Date().toISOString()}); save(name,l); return{id}; },
-                        get: async() => ({ docs: load(name).map(d=>({id:d.id, data:()=>d})), empty: load(name).length===0 }),
-                        where: (f,o,v) => ({ get: async() => { const l=load(name).filter(x=>x[f]===v); return {docs:l.map(d=>({id:d.id,data:()=>d})), empty:l.length===0}; } }),
-                        orderBy: () => ({ get: async() => ({ docs: load(name).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(d=>({id:d.id,data:()=>d})), empty: load(name).length===0 }) }),
+                        add: async (d) => { const list=load(name); const id=Date.now().toString(); list.push({id, ...d, createdAt:new Date().toISOString()}); save(name, list); return {id}; },
+                        get: async () => ({ docs: load(name).map(d => ({id:d.id, data:()=>d})), empty: load(name).length===0 }),
+                        where: (f,o,v) => ({ get: async () => { const list=load(name).filter(x=>x[f]===v); return {docs:list.map(d=>({id:d.id,data:()=>d})), empty:list.length===0}; } }),
+                        orderBy: () => ({ get: async () => ({ docs: load(name).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(d=>({id:d.id,data:()=>d})), empty: load(name).length===0 }) }),
                         doc: (id) => ({
-                            get: async() => { const i=load(name).find(x=>x.id===id); return {exists:!!i, data:()=>i}; },
-                            update: async(u) => { const l=load(name); const i=l.findIndex(x=>x.id===id); if(i!==-1){l[i]={...l[i],...u}; save(name,l);} },
-                            delete: async() => { save(name, load(name).filter(x=>x.id!==id)); },
-                            collection: (s) => ({
-                                add: async(sd) => { const k=`${name}_${id}_${s}`; const l=load(k); l.push({id:Date.now().toString(),...sd, date:new Date().toISOString()}); save(k,l); },
-                                get: async() => ({ docs:load(`${name}_${id}_${s}`).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(d=>({id:d.id,data:()=>d})), empty:load(`${name}_${id}_${s}`).length===0 }),
+                            get: async () => { const i=load(name).find(x=>x.id===id); return {exists:!!i, data:()=>i}; },
+                            update: async (u) => { const list=load(name); const idx=list.findIndex(x=>x.id===id); if(idx!==-1){list[idx]={...list[idx],...u}; save(name, list);} },
+                            delete: async () => { save(name, load(name).filter(x=>x.id!==id)); },
+                            collection: (sub) => ({
+                                add: async (sd) => { const k=`${name}_${id}_${sub}`; const l=load(k); l.push({id:Date.now().toString(), ...sd, date:new Date().toISOString()}); save(k,l); },
+                                get: async () => ({ docs: load(`${name}_${id}_${sub}`).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(d=>({id:d.id, data:()=>d})), empty: load(`${name}_${id}_${sub}`).length===0 }),
                                 orderBy: function(){return this}
                             })
                         })
@@ -256,6 +257,7 @@
                 const pw = document.getElementById('stPw').value;
                 ui.showLoading();
                 try {
+                    // Safe Query with fallback for empty DB
                     const snap = await db.collection('students').where('userId','==',id).get();
                     if(!snap.empty) {
                         const s = {id:snap.docs[0].id, ...snap.docs[0].data()};
@@ -276,7 +278,7 @@
                     else if(s.role==='student') {
                         try {
                             const d = await db.collection('students').doc(s.uid).get();
-                            if(d.exists) studentView.init({id:d.id, ...d.data()});
+                            if(d.exists) { currentUser={id:d.id, ...d.data()}; studentView.init(currentUser); }
                             else localStorage.removeItem('mma_sess');
                         } catch(e) { localStorage.removeItem('mma_sess'); }
                     }
@@ -291,13 +293,12 @@
         // 3. ADMIN
         const admin = {
             init: async () => {
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('appLayout').classList.remove('hidden');
+                ui.showScreen('appLayout');
                 document.getElementById('sidebarRole').innerText = "Administrator";
                 document.getElementById('sidebarIcon').innerText = "A";
                 
                 document.getElementById('sidebarMenu').innerHTML = `
-                    <button onclick="admin.showTab('students')" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 mb-2 text-slate-600 flex items-center gap-3"><i class="fa-solid fa-users"></i> 학생 관리</button>
+                    <button onclick="admin.showTab('students')" id="btnAdminStudents" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 mb-2 text-slate-600 flex items-center gap-3"><i class="fa-solid fa-users"></i> 학생 관리</button>
                     <button onclick="admin.showTab('notices')" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 mb-2 text-slate-600 flex items-center gap-3"><i class="fa-solid fa-bullhorn"></i> 공지사항</button>
                     <div class="border-t pt-4 mt-4"><button onclick="admin.openModal()" class="w-full py-3 border-2 border-dashed border-indigo-200 text-indigo-600 font-bold rounded-xl hover:bg-indigo-50">+ 학생 계정 발급</button></div>
                 `;
@@ -305,26 +306,34 @@
                 admin.showTab('students');
             },
             showTab: async (tab) => {
-                const c = document.getElementById('mainContent');
-                if(tab==='students') {
+                const content = document.getElementById('mainContent');
+                const btnS = document.getElementById('btnAdminStudents');
+                const btnN = document.getElementById('btnAdminNotices');
+                
+                if(btnS) btnS.className = tab==='students' ? "w-full text-left px-4 py-3 rounded-xl font-bold bg-indigo-50 text-indigo-600 flex gap-3" : "w-full text-left px-4 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-50 flex gap-3";
+                if(btnN) btnN.className = tab==='notices' ? "w-full text-left px-4 py-3 rounded-xl font-bold bg-indigo-50 text-indigo-600 flex gap-3" : "w-full text-left px-4 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-50 flex gap-3";
+
+                if(tab === 'students') {
                     document.getElementById('headerTitle').innerText = "학생 관리";
                     document.getElementById('headerActions').innerHTML = `<button onclick="admin.openModal()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow lg:hidden">+ 학생</button>`;
-                    c.innerHTML = `<div class="bg-white rounded-2xl shadow border p-4 h-full flex flex-col"><h3 class="font-bold text-slate-500 text-xs uppercase mb-4">Student List</h3><div id="stList" class="flex-1 overflow-y-auto space-y-2"></div></div>`;
-                    admin.renderStudents();
-                } else {
+                    content.innerHTML = `<div class="flex h-full gap-6"><div class="w-full lg:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col"><div class="p-4 border-b border-slate-100 font-bold text-slate-400 text-xs uppercase">Student List</div><div id="adminStudentList" class="flex-1 overflow-y-auto p-2 space-y-2"></div></div><div class="hidden lg:flex flex-1 bg-white rounded-2xl shadow-sm border border-slate-200 flex-col relative"><div id="adminDetailView" class="absolute inset-0 overflow-y-auto p-6 hidden"></div><div id="adminEmpty" class="absolute inset-0 flex flex-col items-center justify-center text-slate-300"><i class="fa-solid fa-user text-4xl mb-3"></i><p>학생 선택</p></div></div></div>`;
+                    await admin.renderList();
+                } else if (tab === 'notices') {
                     document.getElementById('headerTitle').innerText = "공지사항";
                     document.getElementById('headerActions').innerHTML = `<button onclick="admin.openNotice()" class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow">+ 작성</button>`;
-                    c.innerHTML = `<div class="bg-white rounded-2xl shadow border p-4 h-full flex flex-col"><h3 class="font-bold text-slate-500 text-xs uppercase mb-4">Notice List</h3><div id="ntList" class="flex-1 overflow-y-auto space-y-2"></div></div>`;
+                    content.innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 h-full flex flex-col"><h3 class="font-bold text-slate-500 text-xs uppercase mb-4">Notice List</h3><div id="ntList" class="flex-1 overflow-y-auto space-y-2"></div></div>`;
                     admin.renderNotices();
                 }
             },
-            renderStudents: async () => {
-                const snap = await db.collection('students').orderBy('joinedAt','desc').get();
-                const list = document.getElementById('stList');
-                list.innerHTML = snap.empty ? '<p class="text-center text-slate-400 text-xs py-10">학생 없음</p>' : snap.docs.map(d=>{
-                    const s = d.data();
-                    return `<div class="p-4 border rounded-xl flex justify-between items-center hover:border-indigo-500 transition bg-slate-50 cursor-pointer" onclick="admin.viewStudent('${d.id}')"><div><div class="font-bold text-slate-800">${s.name}</div><div class="text-xs text-slate-400">ID: ${s.userId} | ${s.grade}</div></div><div class="text-[10px] px-2 py-0.5 rounded bg-white border font-bold text-slate-500">${s.status||'대기'}</div></div>`
-                }).join('');
+            renderList: async () => {
+                const list = document.getElementById('adminStudentList');
+                try {
+                    const snap = await db.collection('students').orderBy('joinedAt','desc').get();
+                    list.innerHTML = snap.empty ? '<p class="text-center text-slate-400 text-xs py-10">학생 없음</p>' : snap.docs.map(d=>{
+                        const s = d.data();
+                        return `<div class="p-4 border rounded-xl flex justify-between items-center hover:border-indigo-500 transition bg-slate-50 cursor-pointer" onclick="admin.viewStudent('${d.id}')"><div><div class="font-bold text-slate-800">${s.name}</div><div class="text-xs text-slate-400">ID: ${s.userId} | ${s.grade}</div></div><div class="text-[10px] px-2 py-0.5 rounded bg-white border font-bold text-slate-500">${s.status||'대기'}</div></div>`
+                    }).join('');
+                } catch(e) { list.innerHTML = '<p class="text-center text-red-400 text-xs py-10">로드 실패</p>'; }
             },
             openModal: (s=null) => {
                 document.getElementById('stModalTitle').innerText = s ? "정보 수정" : "학생 계정 발급";
@@ -344,18 +353,26 @@
                 ui.showLoading();
                 if(id) await db.collection('students').doc(id).update(d);
                 else await db.collection('students').add({...d, status:'testing', joinedAt:new Date().toISOString()});
-                ui.closeModal('studentModal'); admin.renderStudents(); ui.hideLoading();
+                ui.closeModal('studentModal'); admin.renderList(); ui.hideLoading();
             },
             viewStudent: async (id) => {
                 const d = await db.collection('students').doc(id).get();
                 const s = {id:d.id, ...d.data()};
                 const h = await db.collection('students').doc(id).collection('history').orderBy('date','desc').get();
                 
-                const c = document.getElementById('mainContent');
-                c.innerHTML = `
+                // Mobile logic
+                const detailContainer = window.innerWidth < 1024 ? document.getElementById('adminStudentList') : document.getElementById('adminDetailView');
+                const emptyState = document.getElementById('adminEmpty');
+                if(emptyState) emptyState.classList.add('hidden');
+                const target = window.innerWidth < 1024 ? document.getElementById('mainContent') : document.getElementById('adminDetailView');
+                
+                const html = `
                     <div class="space-y-6 fade-in">
                         <div class="bg-white p-6 rounded-3xl shadow border flex justify-between">
-                            <div><h2 class="text-2xl font-bold">${s.name}</h2><p class="text-sm text-slate-500">${s.userId} | ${s.grade}</p></div>
+                            <div>
+                                <div class="flex gap-2 items-center"><h2 class="text-2xl font-bold">${s.name}</h2>${window.innerWidth<1024?`<button onclick="admin.showTab('students')" class="text-xs bg-slate-100 px-2 rounded">목록</button>`:''}</div>
+                                <p class="text-sm text-slate-500">${s.userId} | ${s.grade}</p>
+                            </div>
                             <div class="flex gap-2"><button onclick='admin.openModal(${JSON.stringify(s)})' class="bg-slate-100 px-3 rounded text-xs">수정</button><button onclick="admin.delStudent('${s.id}')" class="bg-red-50 text-red-500 px-3 rounded text-xs">삭제</button></div>
                         </div>
                         <div class="bg-white p-6 rounded-3xl shadow border min-h-[400px]">
@@ -363,8 +380,10 @@
                             <div class="space-y-2">${h.empty ? '<p class="text-slate-400 text-center">기록 없음</p>' : h.docs.map(doc=>`<div class="p-3 border rounded flex justify-between hover:bg-slate-50"><span>${doc.data().topic}</span><b>${doc.data().score}점</b></div>`).join('')}</div>
                         </div>
                     </div>`;
+                target.innerHTML = html;
+                target.classList.remove('hidden');
             },
-            delStudent: async (id) => { if(confirm("삭제?")) { await db.collection('students').doc(id).delete(); admin.renderStudents(); document.getElementById('mainContent').innerHTML = ''; } },
+            delStudent: async (id) => { if(confirm("삭제?")) { await db.collection('students').doc(id).delete(); admin.renderList(); document.getElementById('adminDetailView').innerHTML=''; } },
             
             // Notices
             openNotice: () => { ui.openModal('noticeModal'); },
@@ -376,7 +395,7 @@
             },
             renderNotices: async () => {
                 const s = await db.collection('notices').orderBy('createdAt','desc').get();
-                document.getElementById('adminNoticeList').innerHTML = s.empty ? '없음' : s.docs.map(d=>`<div class="p-3 border rounded mb-2 bg-slate-50"><b>${d.data().title}</b><p class="text-xs text-slate-500">${d.data().content}</p><button onclick="admin.delNotice('${d.id}')" class="text-red-400 text-[10px] mt-1">삭제</button></div>`).join('');
+                document.getElementById('ntList').innerHTML = s.empty ? '없음' : s.docs.map(d=>`<div class="p-3 border rounded mb-2 bg-slate-50"><b>${d.data().title}</b><p class="text-xs text-slate-500">${d.data().content}</p><button onclick="admin.delNotice('${d.id}')" class="text-red-400 text-[10px] mt-1">삭제</button></div>`).join('');
             },
             delNotice: async(id) => { if(confirm("삭제?")) { await db.collection('notices').doc(id).delete(); admin.renderNotices(); } }
         };
@@ -387,7 +406,10 @@
                 ui.showScreen('appLayout');
                 document.getElementById('sidebarRole').innerText = s.name;
                 document.getElementById('studentNameDisplay').innerText = s.name;
-                document.getElementById('sidebarMenu').innerHTML = `<button class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-indigo-50 text-slate-600" onclick="studentView.dash()">🏠 대시보드</button>`;
+                document.getElementById('sidebarMenu').innerHTML = `
+                    <button onclick="studentView.dash()" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-indigo-50 text-slate-600" onclick="studentView.dash()">🏠 대시보드</button>
+                    <button onclick="studentView.archive()" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-indigo-50 text-slate-600" onclick="studentView.archive()">📚 오답노트</button>
+                `;
                 studentView.dash();
             },
             dash: () => {
@@ -425,7 +447,7 @@
                         <div class="bg-white h-full rounded-3xl shadow border flex flex-col overflow-hidden fade-in">
                             <div class="p-6 border-b bg-slate-50 font-bold flex justify-between"><span>${title}</span><span class="text-indigo-600">LIVE</span></div>
                             <div class="flex-1 overflow-y-auto p-8 space-y-8">
-                                ${data.questions.map((q,i)=>`<div class="bg-slate-50 p-6 rounded-2xl border"><p class="font-bold mb-4">Q${i+1}. ${q.text}</p><div class="space-y-2">${q.options.map((o,oi)=>`<label class="flex items-center p-3 bg-white border rounded cursor-pointer hover:border-indigo-500"><input type="radio" name="q_${i}" value="${oi}" class="mr-3"> ${o}</label>`).join('')}</div></div>`).join('')}
+                                ${data.questions.map((q,i)=>`<div class="bg-slate-50 p-6 rounded-2xl border"><p class="font-bold mb-4">Q${i+1}. ${q.text}</p><div class="space-y-2">${q.options.map((o,oi)=>`<label class="flex items-center p-3 bg-white border rounded-xl cursor-pointer hover:border-indigo-500"><input type="radio" name="q_${i}" value="${oi}" class="mr-3"> ${o}</label>`).join('')}</div></div>`).join('')}
                             </div>
                             <div class="p-6 border-t flex justify-end"><button onclick='studentView.submit(${JSON.stringify(data.questions)}, "${title}")' class="bg-indigo-600 text-white px-10 py-3 rounded-xl font-bold">제출하기</button></div>
                         </div>`;
@@ -434,9 +456,7 @@
             },
             submit: async (qs, title) => {
                 if(!confirm("제출?")) return;
-                ui.showLoading();
-                let score = 0;
-                qs.forEach((q,i) => { if(document.querySelector(`input[name="q_${i}"]:checked`)?.value == q.correctIndex) score++; });
+                let score=0; qs.forEach((q,i) => { if(document.querySelector(`input[name="q_${i}"]:checked`)?.value == q.correctIndex) score++; });
                 const final = Math.round(score/qs.length*100);
                 
                 await db.collection('students').doc(currentUser.id).collection('history').add({date:new Date().toISOString(), score:final, topic:title});
@@ -447,79 +467,26 @@
                 const updated = await db.collection('students').doc(currentUser.id).get();
                 currentUser = {id:updated.id, ...updated.data()};
                 studentView.dash();
-                ui.hideLoading();
+            },
+            renderArchive: async () => {
+                const snap = await db.collection('students').doc(currentUser.id).collection('history').get(); // Simplified for demo
+                document.getElementById('mainContent').innerHTML = `<div class="space-y-4 fade-in"><h3 class="text-2xl font-bold">학습 기록</h3>${snap.docs.map(d=>`<div class="bg-white p-4 rounded-xl border shadow-sm flex justify-between"><span>${d.data().topic}</span><b>${d.data().score}점</b></div>`).join('')}</div>`;
             }
         };
 
-        // --- APP ---
-        const app = {
-            init: async () => {
-                ui.showScreen('loginScreen');
-                await dbManager.init();
-                await auth.checkSession();
-            },
-            toggleLoginTab: (type) => {
-                const isStd = type === 'student';
-                document.getElementById('tabStudent').className = isStd ? "flex-1 py-2.5 rounded-lg text-sm font-bold bg-white shadow text-indigo-600 transition" : "flex-1 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-700 transition";
-                document.getElementById('tabAdmin').className = !isStd ? "flex-1 py-2.5 rounded-lg text-sm font-bold bg-white shadow text-indigo-600 transition" : "flex-1 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-slate-700 transition";
-                document.getElementById('formStudent').classList.toggle('hidden', !isStd);
-                document.getElementById('formAdmin').classList.toggle('hidden', isStd);
-            },
-            loginAdmin: async () => {
-                const id = document.getElementById('loginAdminId').value;
-                const pw = document.getElementById('loginAdminPw').value;
-                if(id==='master' && pw==='1234') {
-                    localStorage.setItem('mma_sess', JSON.stringify({role:'admin'}));
-                    admin.init();
-                } else alert("정보 불일치");
-            },
-            loginStudent: async () => {
-                const id = document.getElementById('loginId').value;
-                const pw = document.getElementById('loginPw').value;
-                ui.showLoading();
-                try {
-                    const snap = await db.collection('students').where('userId','==',id).get();
-                    if(!snap.empty) {
-                        const s = {id:snap.docs[0].id, ...snap.docs[0].data()};
-                        if(s.userPw === pw) {
-                            localStorage.setItem('mma_sess', JSON.stringify({role:'student', uid:s.id}));
-                            currentUser = s;
-                            studentView.init(s);
-                        } else alert("비밀번호 오류");
-                    } else alert("ID 없음");
-                } catch(e) { alert("오류"); }
-                ui.hideLoading();
-            },
-            logout: () => {
-                if(confirm("로그아웃?")) { localStorage.removeItem('mma_sess'); location.reload(); }
-            },
-            resetAll: () => { if(confirm("초기화?")) { localStorage.clear(); location.reload(); } }
-        };
-
-        const auth = { checkSession: async () => {
-            const s = JSON.parse(localStorage.getItem('mma_sess'));
-            if(s) {
-                if(s.role==='admin') admin.init();
-                else if(s.role==='student') {
-                    const d = await db.collection('students').doc(s.uid).get();
-                    if(d.exists) { currentUser={id:d.id, ...d.data()}; studentView.init(currentUser); }
-                }
-            }
-        }, switchMode: app.toggleLoginTab, loginAdmin: app.loginAdmin, loginStudent: app.loginStudent, logout: app.logout };
-
+        // --- UI UTILS ---
         const ui = {
             showScreen: (id) => { ['loginScreen','appLayout'].forEach(x=>document.getElementById(x).classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); },
-            toggleSidebar: () => { const s=document.getElementById('mainSidebar'), o=document.getElementById('sidebarOverlay'); s.classList.toggle('-translate-x-full'); o.classList.toggle('hidden'); },
+            toggleSidebar: () => { const s=document.getElementById('mainSidebar'), o=document.getElementById('sidebarOverlay'); if(s.classList.contains('-translate-x-full')){s.classList.remove('-translate-x-full');o.classList.remove('hidden')}else{s.classList.add('-translate-x-full');o.classList.add('hidden')} },
+            showLoading: (m) => { document.getElementById('loadingOverlay').classList.remove('hidden'); },
+            hideLoading: () => { document.getElementById('loadingOverlay').classList.add('hidden'); },
             openModal: (id) => document.getElementById(id).classList.remove('hidden'),
-            closeModal: (id) => document.getElementById(id).classList.add('hidden'),
-            showLoading: () => document.getElementById('loadingOverlay').classList.remove('hidden'),
-            hideLoading: () => document.getElementById('loadingOverlay').classList.add('hidden')
+            closeModal: (id) => document.getElementById(id).classList.add('hidden')
         };
-
-        // Aliases for HTML onclicks
-        window.auth = auth; window.app = app; window.admin = admin; window.studentView = studentView; window.ui = ui;
 
         app.init();
     </script>
 </body>
 </html>
+```
+```eof
