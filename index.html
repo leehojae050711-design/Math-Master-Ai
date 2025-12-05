@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Master AI - LMS V9.2 (Instant)</title>
+    <title>Math Master AI - LMS V9.2 (Final Local)</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,10 +12,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
 
-    <!-- Firebase SDKs (Optional) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase SDKs (Disabled for stability) -->
+    <!-- <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script> -->
+    <!-- <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script> -->
+    <!-- <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script> -->
 
     <style>
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -50,7 +50,7 @@
                 <div class="w-24 h-24 bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-[20px] flex items-center justify-center text-4xl font-black mx-auto mb-5 shadow-lg shadow-indigo-500/30 font-logo tracking-tighter">MMA</div>
                 <h1 class="text-3xl font-extrabold text-slate-900 font-logo tracking-tight">Math Master AI</h1>
                 <p class="text-slate-500 text-xs font-bold mt-2 uppercase tracking-[0.3em]">LMS Platform V9.2</p>
-                <div id="dbStatus" class="mt-4 text-[10px] font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-500 inline-block">● 시스템 준비 중...</div>
+                <div id="dbStatus" class="mt-4 text-[10px] font-medium px-3 py-1 rounded-full bg-blue-50 text-blue-600 border border-blue-100 inline-block">● 로컬 저장 모드 (안전)</div>
             </div>
 
             <!-- Student Login -->
@@ -191,33 +191,12 @@
         // 1. CONFIGURATION
         const GEMINI_API_KEY = "AIzaSyAK8yW0lrO3jr5jZx4ZnGFSzYz-2gjY-V4";
         
-        // ✅ FIREBASE CONFIG (Optional/Legacy)
-        const firebaseConfig = {
-            apiKey: "AIzaSyCcxjHOkYUwjRJzTx2asT1xVCWoisRqKTU",
-            authDomain: "math-master-ai-af26c.firebaseapp.com",
-            projectId: "math-master-ai-af26c",
-            storageBucket: "math-master-ai-af26c.firebasestorage.app",
-            messagingSenderId: "66588105456",
-            appId: "1:66588105456:web:b4d4d5859119212e240035"
-        };
+        // ✅ FIREBASE (DISABLED FOR STABILITY - Using Local Storage)
+        // const firebaseConfig = { ... };
 
         let db;
         let currentUser = null;
-        let isLocalMode = true;
-
-        const app = {
-            init: async () => {
-                await dbManager.init();
-                // Check if already logged in
-                setTimeout(auth.checkSession, 500);
-            },
-            resetAll: () => {
-                if(confirm("모든 데이터를 초기화하시겠습니까? (복구 불가)")) {
-                    localStorage.clear();
-                    location.reload();
-                }
-            }
-        };
+        let isLocalMode = true; // FORCE TRUE
 
         // 2. DB & AUTH
         const dbManager = {
@@ -225,77 +204,31 @@
                 // IMPORTANT: Show login screen FIRST
                 ui.showScreen('loginScreen');
                 
-                // FORCE LOCAL MODE: To ensure students and notices can be created without server permission errors.
-                // This bypasses the flaky Firebase connection check.
-                console.log("Using Local Mock DB for stability.");
+                // FORCE MOCK DB (This fixes the "Save Failed" error on GitHub Pages)
+                console.log("FORCE LOCAL MODE: Bypassing Firebase to ensure saving works.");
                 db = dbManager.getMockDB();
                 isLocalMode = true;
-                ui.setStatus("● 로컬 데이터 모드 (안전 저장)", "text-blue-500", "bg-blue-100");
-
-                /* ORIGINAL CONNECTION LOGIC (Disabled for stability)
-                try {
-                    if(firebaseConfig.apiKey) {
-                        if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-                        const realDb = firebase.firestore();
-                        // ... probe logic ...
-                    } 
-                } catch(e) { ... }
-                */
+                
+                // Removed all Firebase connection logic to prevent permission errors
+                ui.setStatus("● 로컬 저장소 모드 (GitHub Pages 호환)", "text-blue-500", "bg-blue-100");
             },
             getMockDB: () => {
                 const ls = localStorage;
                 const load = (k) => { try{return JSON.parse(ls.getItem('mma_'+k)||'[]')}catch(e){return []} };
                 const save = (k,v) => ls.setItem('mma_'+k, JSON.stringify(v));
-                
                 return {
                     collection: (name) => ({
-                        add: async(d) => { 
-                            const l=load(name); 
-                            const id=Date.now().toString(); 
-                            l.push({id, ...d, createdAt:new Date().toISOString()}); 
-                            save(name,l); 
-                            return {id}; 
-                        },
-                        get: async() => ({ 
-                            docs: load(name).map(d=>({id:d.id, data:()=>d})), 
-                            empty: load(name).length===0 
-                        }),
-                        where: (f,o,v) => ({ 
-                            get: async() => { 
-                                const l=load(name).filter(x=>x[f]===v); 
-                                return {docs:l.map(d=>({id:d.id,data:()=>d})), empty:l.length===0}; 
-                            } 
-                        }),
-                        orderBy: () => ({ 
-                            get: async() => ({ 
-                                docs: load(name).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(d=>({id:d.id,data:()=>d})), 
-                                empty: load(name).length===0 
-                            }) 
-                        }),
+                        add: async(d) => { const l=load(name); const id=Date.now().toString(); l.push({id,...d, createdAt:new Date().toISOString()}); save(name,l); return{id}; },
+                        get: async() => ({ docs: load(name).map(d=>({id:d.id, data:()=>d})), empty: load(name).length===0 }),
+                        where: (f,o,v) => ({ get: async() => { const l=load(name).filter(x=>x[f]===v); return {docs:l.map(d=>({id:d.id,data:()=>d})), empty:l.length===0}; } }),
+                        orderBy: () => ({ get: async() => ({ docs: load(name).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt)).map(d=>({id:d.id,data:()=>d})), empty: load(name).length===0 }) }),
                         doc: (id) => ({
-                            get: async() => { 
-                                const i=load(name).find(x=>x.id===id); 
-                                return {exists:!!i, data:()=>i}; 
-                            },
-                            update: async(u) => { 
-                                const l=load(name); 
-                                const i=l.findIndex(x=>x.id===id); 
-                                if(i!==-1){l[i]={...l[i],...u}; save(name,l);} 
-                            },
-                            delete: async() => { 
-                                save(name, load(name).filter(x=>x.id!==id)); 
-                            },
+                            get: async() => { const i=load(name).find(x=>x.id===id); return {exists:!!i, data:()=>i}; },
+                            update: async(u) => { const l=load(name); const i=l.findIndex(x=>x.id===id); if(i!==-1){l[i]={...l[i],...u}; save(name,l);} },
+                            delete: async() => { save(name, load(name).filter(x=>x.id!==id)); },
                             collection: (s) => ({
-                                add: async(sd) => { 
-                                    const k=`${name}_${id}_${s}`; 
-                                    const l=load(k); 
-                                    l.push({id:Date.now().toString(),...sd, date:new Date().toISOString()}); 
-                                    save(k,l); 
-                                },
-                                get: async() => ({ 
-                                    docs:load(`${name}_${id}_${s}`).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(d=>({id:d.id,data:()=>d})), 
-                                    empty:load(`${name}_${id}_${s}`).length===0 
-                                }),
+                                add: async(sd) => { const k=`${name}_${id}_${s}`; const l=load(k); l.push({id:Date.now().toString(),...sd, date:new Date().toISOString()}); save(k,l); },
+                                get: async() => ({ docs:load(`${name}_${id}_${s}`).sort((a,b)=>new Date(b.date)-new Date(a.date)).map(d=>({id:d.id,data:()=>d})), empty:load(`${name}_${id}_${s}`).length===0 }),
                                 orderBy: function(){return this}, limit: function(){return this}
                             })
                         })
@@ -485,3 +418,147 @@
                     ui.closeModal('studentModal'); await admin.renderList();
                 } catch(e) { 
                     console.error(e);
+                    alert("저장 실패 (로컬 모드인지 확인하세요)"); 
+                }
+                ui.hideLoading();
+            },
+            deleteStudent: async () => { if(confirm("삭제?")) { await db.collection('students').doc(currentUser.id).delete(); admin.renderList(); if(window.innerWidth>=1024) {document.getElementById('adminDetailView').classList.add('hidden'); document.getElementById('adminEmpty').classList.remove('hidden');} else admin.showTab('students'); } },
+            
+            openNoticeModal: () => { 
+                const sel = document.getElementById('noticeTarget'); sel.innerHTML = '<option value="all">전체 학생</option>';
+                db.collection('students').get().then(snap => snap.docs.forEach(d => sel.innerHTML+=`<option value="${d.id}">${d.data().name}</option>`));
+                ui.openModal('noticeModal'); 
+            },
+            saveNotice: async () => {
+                const t = document.getElementById('noticeTitle').value, c = document.getElementById('noticeContent').value, trg = document.getElementById('noticeTarget').value;
+                if(!t) return;
+                await db.collection('notices').add({title:t, content:c, target:trg, createdAt:new Date().toISOString()});
+                ui.closeModal('noticeModal'); admin.renderTab('notices');
+            },
+            renderNotices: async () => {
+                const list = document.getElementById('adminNoticeList');
+                const snap = await db.collection('notices').orderBy('createdAt', 'desc').get();
+                list.innerHTML = snap.empty ? '<p class="text-center text-slate-400 py-10 text-sm">공지 없음</p>' : snap.docs.map(d=>`<div class="bg-slate-50 p-4 rounded-xl mb-2 border border-slate-100 flex justify-between"><div><h4 class="font-bold text-slate-800">${d.data().title}</h4><p class="text-xs text-slate-500 mt-1">${d.data().content}</p></div><button onclick="admin.delNotice('${d.id}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button></div>`).join('');
+            },
+            delNotice: async (id) => { if(confirm("삭제?")) { await db.collection('notices').doc(id).delete(); admin.renderTab('notices'); } },
+            
+            loadReports: async (id) => {
+                const snap = await db.collection('students').doc(id).collection('history').orderBy('date', 'desc').get();
+                document.getElementById('reportList').innerHTML = snap.empty ? '<p class="text-center py-10 text-slate-400 text-xs">기록 없음</p>' : snap.docs.map(d=> {
+                    const h=d.data();
+                    return `<div onclick='admin.openPDF(${JSON.stringify(h)})' class="flex justify-between items-center p-3 bg-slate-50 rounded-xl hover:bg-indigo-50 cursor-pointer transition mb-2"><span>${h.topic}</span><span class="font-bold text-indigo-600">${h.score}점</span></div>`;
+                }).join('');
+            },
+            openPDF: (r) => {
+                 document.getElementById('pdfName').innerText = currentUser.name;
+                 document.getElementById('pdfDate').innerText = new Date(r.date).toLocaleDateString();
+                 document.getElementById('pdfTopic').innerText = r.topic;
+                 document.getElementById('pdfScore').innerText = r.score;
+                 document.getElementById('pdfComment').innerText = r.aiComment || "-";
+                 document.getElementById('pdfMistakes').innerHTML = (r.mistakes||[]).map(m=>`<div class="bg-slate-50 p-3 rounded border"><p class="font-bold text-sm">Q. ${m.question}</p><p class="text-xs mt-1 text-slate-600">A: ${m.correctAnswer} / ${m.explanation}</p></div>`).join('') || '오답 없음';
+                 const el = document.getElementById('pdfTemplate'); el.style.display = 'block';
+                 html2pdf(el, { margin:10, filename:`Report.pdf`, html2canvas:{scale:2}, jsPDF:{unit:'mm', format:'a4'} }).then(() => el.style.display = 'none');
+            }
+        };
+
+        // 5. STUDENT
+        const studentView = {
+            init: (s) => {
+                ui.showScreen('appLayout');
+                document.getElementById('sidebarRole').innerText = s.name;
+                document.getElementById('studentNameDisplay').innerText = s.name;
+                document.getElementById('sidebarMenu').innerHTML = `
+                    <button onclick="studentView.dash()" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-indigo-50 text-slate-600 transition flex items-center gap-3"><i class="fa-solid fa-house w-5 text-center"></i> 대시보드</button>
+                    <button onclick="studentView.archive()" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-indigo-50 text-slate-600 transition flex items-center gap-3"><i class="fa-solid fa-book-open w-5 text-center"></i> 오답노트</button>
+                    <button onclick="studentView.reports()" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-indigo-50 text-slate-600 transition flex items-center gap-3"><i class="fa-solid fa-chart-pie w-5 text-center"></i> 리포트</button>
+                `;
+                studentView.dash();
+                studentView.checkNotices(s.id);
+            },
+            checkNotices: async (sid) => {
+                const snap = await db.collection('notices').orderBy('createdAt','desc').get();
+                const n = snap.docs.map(d=>d.data()).find(x => x.target==='all' || x.target===sid);
+                if(n) alert(`📢 [공지] ${n.title}\n\n${n.content}`);
+            },
+            dash: () => {
+                const s = currentUser;
+                const action = s.status==='testing' ? 'startTest' : 'startDaily';
+                const txt = s.status==='testing' ? '🎯 진단 테스트' : '📝 오늘의 학습';
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="fade-in space-y-6">
+                        <div id="noticeArea"></div>
+                        <div class="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-[2rem] p-10 text-white shadow-xl relative overflow-hidden">
+                            <div class="relative z-10"><h2 class="text-3xl font-black mb-2">안녕하세요, ${s.name}님!</h2><p class="opacity-80 mb-6">오늘의 목표를 달성하세요.</p><button onclick="studentView.${action}()" class="bg-white text-indigo-700 px-8 py-3 rounded-xl font-bold shadow-lg hover:scale-105 transition">${txt}</button></div>
+                        </div>
+                        <div class="bg-white p-6 rounded-3xl shadow border border-slate-100 min-h-[300px]">
+                            <h3 class="font-bold text-slate-700 mb-4">최근 학습 기록</h3>
+                            <div id="stHistory" class="space-y-2"></div>
+                        </div>
+                    </div>`;
+                studentView.loadHistory();
+            },
+            loadHistory: async () => {
+                const snap = await db.collection('students').doc(currentUser.id).collection('history').orderBy('date','desc').get();
+                document.getElementById('stHistory').innerHTML = snap.empty ? '<p class="text-center text-slate-400 py-10">기록 없음</p>' : snap.docs.map(d=>`<div class="p-3 border-b flex justify-between items-center"><span>${d.data().topic}</span><span class="font-bold text-indigo-600">${d.data().score}점</span></div>`).join('');
+            },
+            startTest: () => studentView.runSession(`Diagnostic math test for ${currentUser.grade}. 5 Qs JSON.`, '진단 테스트'),
+            startDaily: () => studentView.runSession(`Math worksheet ${currentUser.grade} focus ${currentUser.weakness}. 10 Qs JSON.`, '오늘의 학습'),
+            runSession: async (prompt, title) => {
+                ui.showLoading("AI 문제 생성 중...");
+                isStudying = true; document.body.classList.add('locked-mode');
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
+                        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+                    });
+                    const json = await res.json();
+                    const data = JSON.parse(json.candidates[0].content.parts[0].text.replace(/```json|```/g,'').trim());
+                    
+                    document.getElementById('mainContent').innerHTML = `
+                        <div class="bg-white h-full rounded-3xl shadow border flex flex-col overflow-hidden fade-in">
+                            <div class="p-6 border-b bg-slate-50 font-bold flex justify-between"><span>${title}</span><span class="text-indigo-600">LIVE</span></div>
+                            <div class="flex-1 overflow-y-auto p-8 space-y-8">
+                                ${data.questions.map((q,i)=>`<div class="bg-slate-50 p-6 rounded-2xl border"><p class="font-bold mb-4">Q${i+1}. ${q.text}</p><div class="space-y-2">${q.options.map((o,oi)=>`<label class="flex items-center p-3 bg-white border rounded-xl cursor-pointer hover:border-indigo-500"><input type="radio" name="q_${i}" value="${oi}" class="mr-3"> ${o}</label>`).join('')}</div></div>`).join('')}
+                            </div>
+                            <div class="p-6 border-t flex justify-end"><button onclick='studentView.submit(${JSON.stringify(data.questions)}, "${title}")' class="bg-indigo-600 text-white px-10 py-3 rounded-xl font-bold">제출하기</button></div>
+                        </div>`;
+                } catch(e) { isStudying=false; document.body.classList.remove('locked-mode'); alert("AI 오류"); studentView.dash(); }
+                ui.hideLoading();
+            },
+            submit: async (qs, title) => {
+                if(!confirm("제출?")) return;
+                let score=0, mistakes=[];
+                qs.forEach((q,i) => { if(document.querySelector(`input[name="q_${i}"]:checked`)?.value == q.correctIndex) score++; else mistakes.push({question:q.text, correctAnswer:q.options[q.correctIndex], explanation:q.explanation||"오답"}); });
+                const final = Math.round(score/qs.length*100);
+                const comm = await (await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({contents:[{parts:[{text:`Score ${final}. Brief Korean feedback.`}]}]}) })).json().then(r=>r.candidates[0].content.parts[0].text);
+                
+                await db.collection('students').doc(currentUser.id).collection('history').add({date:new Date().toISOString(), score:final, topic:title, mistakes, aiComment:comm});
+                if(currentUser.status==='testing') await db.collection('students').doc(currentUser.id).update({status:'active', weakness:'AI 맞춤'});
+                alert(`점수: ${final}점`); studentView.dash(); ui.hideLoading();
+            },
+            renderArchive: async () => {
+                const snap = await db.collection('students').doc(currentUser.id).collection('history').get();
+                let mHTML = '';
+                snap.docs.forEach(d => { if(d.data().mistakes) d.data().mistakes.forEach(m => mHTML+=`<div class="bg-white p-4 rounded-xl border border-red-100 mb-2 shadow-sm"><p class="font-bold mb-1">Q. ${m.question}</p><p class="text-sm text-red-500">A: ${m.correctAnswer}</p></div>`); });
+                document.getElementById('mainContent').innerHTML = `<div class="space-y-4 fade-in"><h3 class="text-2xl font-bold">오답 보관함</h3>${mHTML || '<p class="text-center text-slate-400 py-20">오답 없음</p>'}</div>`;
+            },
+            renderReports: async () => {
+                const snap = await db.collection('students').doc(currentUser.id).collection('history').orderBy('date','desc').get();
+                document.getElementById('mainContent').innerHTML = `<div class="space-y-4 fade-in"><h3 class="text-2xl font-bold">리포트</h3>${snap.docs.map(d=>`<div class="bg-white p-6 rounded-2xl shadow-sm border border-indigo-100 flex justify-between"><span>${d.data().topic}</span><span class="font-bold text-indigo-600">${d.data().score}점</span></div>`).join('') || '<p class="text-center text-slate-400 py-20">기록 없음</p>'}</div>`;
+            }
+        };
+
+        // --- UI UTILS ---
+        const ui = {
+            showScreen: (id) => { ['loginScreen','appLayout'].forEach(x=>document.getElementById(x).classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); },
+            toggleSidebar: () => { const s=document.getElementById('mainSidebar'), o=document.getElementById('sidebarOverlay'); if(s.classList.contains('-translate-x-full')){s.classList.remove('-translate-x-full');o.classList.remove('hidden')}else{s.classList.add('-translate-x-full');o.classList.add('hidden')} },
+            showLoading: (m) => { document.getElementById('loadingOverlay').classList.remove('hidden'); },
+            hideLoading: () => { document.getElementById('loadingOverlay').classList.add('hidden'); },
+            openModal: (id) => document.getElementById(id).classList.remove('hidden'),
+            closeModal: (id) => document.getElementById(id).classList.add('hidden'),
+            setStatus: (m,c,b) => { const el=document.getElementById('dbStatus'); if(el){el.innerText=m; el.className=`mt-2 text-[10px] font-bold ${c}`} }
+        };
+
+        app.init();
+    </script>
+</body>
+</html>
