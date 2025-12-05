@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Master AI - LMS V9.1</title>
+    <title>Math Master AI - LMS V9.2 (Instant)</title>
     
     <!-- Libraries -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,8 +20,8 @@
     <style>
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f8fafc; -webkit-tap-highlight-color: transparent; user-select: none; }
         .font-logo { font-family: 'Montserrat', sans-serif; letter-spacing: -0.02em; }
-        .loading-overlay { background: rgba(255,255,255,0.95); z-index: 9999; cursor: wait; }
-        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .loading-overlay { background: rgba(255,255,255,0.98); z-index: 9999; cursor: wait; }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .login-bg {
@@ -49,8 +49,8 @@
             <div class="text-center mb-10">
                 <div class="w-24 h-24 bg-gradient-to-br from-indigo-600 to-purple-600 text-white rounded-[20px] flex items-center justify-center text-4xl font-black mx-auto mb-5 shadow-lg shadow-indigo-500/30 font-logo tracking-tighter">MMA</div>
                 <h1 class="text-3xl font-extrabold text-slate-900 font-logo tracking-tight">Math Master AI</h1>
-                <p class="text-slate-500 text-xs font-bold mt-2 uppercase tracking-[0.3em]">LMS Platform V9.1</p>
-                <div id="dbStatus" class="mt-4 text-[10px] font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-500 inline-block">● 시스템 준비 중...</div>
+                <p class="text-slate-500 text-xs font-bold mt-2 uppercase tracking-[0.3em]">LMS Platform V9.2</p>
+                <div id="dbStatus" class="mt-4 text-[10px] font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-500 inline-block">● 시스템 준비 완료</div>
             </div>
 
             <!-- Student Login -->
@@ -182,14 +182,16 @@
         <div><h2 class="text-lg font-bold text-slate-800 mb-4 border-b border-slate-200 pb-2 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-red-500"></i> Review Notes</h2><div id="pdfMistakes" class="space-y-4"></div></div>
     </div>
 
-    <div id="loadingOverlay" class="hidden fixed inset-0 loading-overlay flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
-        <div class="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-        <p id="loadingText" class="text-indigo-600 font-bold text-sm animate-pulse tracking-widest">PROCESSING</p>
+    <div id="loadingOverlay" class="hidden fixed inset-0 loading-overlay flex flex-col items-center justify-center">
+        <div class="w-16 h-16 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin mb-4 shadow-none"></div>
+        <p id="loadingText" class="text-slate-400 font-bold text-sm animate-pulse tracking-widest">LOADING</p>
     </div>
 
     <script>
-        // 1. CONFIG
+        // 1. CONFIGURATION
         const GEMINI_API_KEY = "AIzaSyAK8yW0lrO3jr5jZx4ZnGFSzYz-2gjY-V4";
+        
+        // ✅ FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyCcxjHOkYUwjRJzTx2asT1xVCWoisRqKTU",
             authDomain: "math-master-ai-af26c.firebaseapp.com",
@@ -203,24 +205,29 @@
         let currentUser = null;
         let isLocalMode = true;
 
-        // 2. DB MANAGER
+        // 2. DB & AUTH
         const dbManager = {
             init: async () => {
+                // IMPORTANT: Show login screen FIRST, check DB in background
+                ui.showScreen('loginScreen');
+                
                 try {
                     if(firebaseConfig.apiKey) {
                         if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
                         const realDb = firebase.firestore();
-                        // Quick check
-                        await Promise.race([
-                            realDb.collection('_probe').doc('ping').get(),
-                            new Promise((_,r)=>setTimeout(()=>r(new Error('TO')), 2000))
-                        ]);
+                        
+                        // PROBE: If slow (>1.5s), just use DB but assume Local Mode visually until success
+                        const probe = realDb.collection('_probe').doc('ping').get();
+                        const timeout = new Promise((_,r)=>setTimeout(()=>r('TO'), 1500));
+                        
+                        await Promise.race([probe, timeout]);
+                        
                         db = realDb;
                         isLocalMode = false;
-                        ui.setStatus("● 서버 연결됨", "text-green-600", "bg-green-100");
+                        ui.setStatus("● 서버 연결됨", "text-green-500", "bg-green-100");
                     } else throw new Error("No Config");
                 } catch(e) {
-                    console.warn("DB Fail -> Mock");
+                    console.warn("Switching to Local Mode");
                     db = dbManager.getMockDB();
                     isLocalMode = true;
                     ui.setStatus("● 로컬 모드 (안전 실행)", "text-slate-500", "bg-slate-100");
@@ -251,7 +258,6 @@
             }
         };
 
-        // 3. AUTH
         const auth = {
             toggleMode: () => {
                 const isHidden = document.getElementById('formAdmin').classList.contains('hidden');
@@ -264,19 +270,21 @@
                 const pw = document.getElementById('adPw').value;
                 ui.showLoading();
                 
+                // Master Key
                 if(id==='master' && pw==='1234') {
                     localStorage.setItem('mma_sess', JSON.stringify({role:'admin'}));
-                    await admin.init();
-                    ui.hideLoading(); // ✅ FIXED: Explicitly hide loading
+                    admin.init();
                 } else { 
-                    alert("정보 불일치"); ui.hideLoading(); 
+                    alert("정보 불일치"); 
                 }
+                ui.hideLoading(); // Ensure hide
             },
             loginStudent: async () => {
                 const id = document.getElementById('stId').value;
                 const pw = document.getElementById('stPw').value;
                 ui.showLoading();
                 try {
+                    // Check Mock or Real DB
                     const snap = await db.collection('students').where('userId','==',id).get();
                     if(!snap.empty) {
                         const s = {id:snap.docs[0].id, ...snap.docs[0].data()};
@@ -286,8 +294,11 @@
                             studentView.init(s);
                         } else { alert("비밀번호 오류"); }
                     } else { alert("존재하지 않는 아이디"); }
-                } catch(e) { console.error(e); alert("오류 발생"); }
-                ui.hideLoading(); // ✅ FIXED
+                } catch(e) { 
+                    console.error(e);
+                    alert("오류 발생 (서버 연결 확인 필요)"); 
+                }
+                ui.hideLoading(); // Ensure hide
             },
             checkSession: async () => {
                 const s = JSON.parse(localStorage.getItem('mma_sess'));
@@ -314,6 +325,7 @@
                 ui.showScreen('appLayout');
                 document.getElementById('sidebarRole').innerText = "Administrator";
                 document.getElementById('sidebarIcon').innerText = "A";
+                
                 document.getElementById('sidebarMenu').innerHTML = `
                     <p class="px-4 text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">Menu</p>
                     <button onclick="admin.showTab('students')" id="btnAdminStudents" class="w-full text-left px-4 py-3 rounded-xl font-bold hover:bg-slate-100 mb-1 transition flex items-center gap-3"><i class="fa-solid fa-users w-5 text-center"></i> 학생 관리</button>
@@ -345,32 +357,80 @@
             renderList: async () => {
                 const list = document.getElementById('adminStudentList');
                 try {
-                    const snap = await db.collection('students').orderBy('joinedAt','desc').get();
-                    list.innerHTML = snap.empty ? '<p class="text-center text-slate-400 text-xs py-10">학생 없음</p>' : snap.docs.map(d=>{
+                    const snap = await db.collection('students').orderBy('joinedAt', 'desc').get();
+                    list.innerHTML = snap.empty ? '<p class="text-center text-slate-400 text-xs py-10">학생 없음</p>' : snap.docs.map(d => {
                         const s = d.data();
-                        const statusColor = s.status==='testing' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
-                        return `<div onclick="admin.selectStudent('${d.id}')" class="p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-500 cursor-pointer transition group"><div class="flex justify-between items-start mb-1"><span class="font-bold text-slate-700 group-hover:text-indigo-700">${s.name}</span><span class="text-[10px] font-bold px-2 py-0.5 rounded ${statusColor}">${s.status||'대기'}</span></div><div class="text-xs text-slate-400">${s.userId} | ${s.grade}</div></div>`
+                        const statusColor = s.status === 'testing' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700';
+                        const statusText = s.status === 'testing' ? '진단필요' : '학습중';
+                        return `
+                            <div onclick="admin.selectStudent('${d.id}')" class="p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-indigo-500 cursor-pointer transition group">
+                                <div class="flex justify-between items-start mb-1">
+                                    <span class="font-bold text-slate-700 group-hover:text-indigo-700">${s.name}</span>
+                                    <span class="text-[10px] font-bold px-2 py-0.5 rounded ${statusColor}">${statusText}</span>
+                                </div>
+                                <div class="text-xs text-slate-400">${s.userId} | ${s.grade}</div>
+                            </div>`;
                     }).join('');
-                } catch(e) { list.innerHTML = '<p class="text-center text-red-400 text-xs">로드 실패</p>'; }
+                } catch(e) { 
+                    try {
+                        const snap = await db.collection('students').get();
+                        list.innerHTML = snap.empty ? '<p class="text-center text-slate-400 text-xs py-10">학생 없음</p>' : snap.docs.map(d=>{
+                            const s = d.data();
+                            return `<div class="p-4 border rounded-xl flex justify-between items-center hover:border-indigo-500 transition bg-slate-50 cursor-pointer" onclick="admin.viewStudent('${d.id}')"><div><div class="font-bold text-slate-800">${s.name}</div><div class="text-xs text-slate-400">ID: ${s.userId} | ${s.grade}</div></div><div class="text-[10px] px-2 py-0.5 rounded bg-white border font-bold text-slate-500">${s.status||'대기'}</div></div>`
+                        }).join('');
+                    } catch(e2) {
+                        list.innerHTML = '<p class="text-center text-red-400 text-xs py-10">로드 실패</p>'; 
+                    }
+                }
             },
             selectStudent: async (id) => {
                 ui.showLoading();
                 try {
                     const doc = await db.collection('students').doc(id).get();
                     currentUser = {id: doc.id, ...doc.data()};
+                    
                     const container = document.getElementById('adminDetailView');
                     document.getElementById('adminEmpty').classList.add('hidden');
                     container.classList.remove('hidden');
-                    container.innerHTML = `<div class="bg-slate-50 p-6 rounded-2xl mb-6 relative overflow-hidden border border-slate-100"><div class="relative z-10 flex justify-between items-start mb-6"><div><div class="flex items-center gap-3 mb-1"><h2 class="text-2xl font-bold text-slate-800">${currentUser.name}</h2><button onclick="admin.openModal(currentUser)" class="text-xs bg-white px-2 py-1 rounded shadow-sm hover:text-indigo-600"><i class="fa-solid fa-pen"></i></button></div><div class="text-sm text-slate-500 font-mono">ID: ${currentUser.userId}</div></div><button onclick="admin.deleteStudent()" class="text-red-400 hover:text-red-600 text-sm underline">삭제</button></div><div class="grid grid-cols-3 gap-4 text-xs"><div class="bg-white p-3 rounded-xl border border-slate-100"><span class="text-slate-400 block font-bold mb-1">Contact</span>${currentUser.phoneStudent||'-'}</div><div class="bg-white p-3 rounded-xl border border-slate-100"><span class="text-slate-400 block font-bold mb-1">Father</span>${currentUser.phoneFather||'-'}</div><div class="bg-white p-3 rounded-xl border border-slate-100"><span class="text-slate-400 block font-bold mb-1">Mother</span>${currentUser.phoneMother||'-'}</div></div></div><div class="flex-1 flex flex-col overflow-hidden"><h4 class="font-bold text-slate-700 mb-3">📊 학습 리포트</h4><div id="reportList" class="flex-1 overflow-y-auto space-y-2 pr-2"></div></div>`;
+                    
+                    container.innerHTML = `
+                        <div class="flex justify-between items-start mb-6 border-b border-slate-100 pb-6">
+                            <div>
+                                <div class="flex items-center gap-3 mb-1">
+                                    <button onclick="admin.showTab('students')" class="lg:hidden text-slate-400"><i class="fa-solid fa-arrow-left"></i></button>
+                                    <h2 class="text-2xl font-bold text-slate-800">${currentUser.name}</h2>
+                                    <button onclick="admin.openModal(currentUser)" class="text-xs bg-slate-100 px-2 py-1 rounded hover:bg-slate-200 text-slate-500"><i class="fa-solid fa-pen"></i></button>
+                                </div>
+                                <div class="text-sm text-slate-500 font-mono">ID: ${currentUser.userId}</div>
+                            </div>
+                            <button onclick="admin.deleteStudent()" class="text-red-400 hover:text-red-600 text-sm"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-4 mb-8">
+                            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-xs text-slate-400 block uppercase font-bold">Contact</span><span class="font-bold text-slate-700 text-sm">${currentUser.phoneStudent||'-'}</span></div>
+                            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-xs text-slate-400 block uppercase font-bold">Father</span><span class="font-bold text-slate-700 text-sm">${currentUser.phoneFather||'-'}</span></div>
+                            <div class="bg-slate-50 p-3 rounded-xl"><span class="text-xs text-slate-400 block uppercase font-bold">Mother</span><span class="font-bold text-slate-700 text-sm">${currentUser.phoneMother||'-'}</span></div>
+                        </div>
+
+                        <div class="flex-1 flex flex-col overflow-hidden">
+                             <h4 class="font-bold text-slate-700 mb-3">📊 학습 리포트</h4>
+                             <div id="reportList" class="flex-1 overflow-y-auto space-y-2 pr-2"></div>
+                        </div>`;
+                    
                     await admin.loadReports(id);
-                } catch(e) {}
+                } catch(e) { console.error(e); }
                 ui.hideLoading();
             },
             openModal: (s=null) => {
                 document.getElementById('stModalTitle').innerText = s ? "정보 수정" : "학생 계정 발급";
                 document.getElementById('editId').value = s ? s.id : "";
                 if(s) {
-                    ['stName','stAge','stGender','stGrade','stAffiliation','stPhone','stParentPhone','stUserId','stUserPw'].forEach(id => document.getElementById(id).value = s[id.replace('st','').replace(/^./, c=>c.toLowerCase())]||'');
+                    ['stName','stAge','stGender','stGrade','stAffiliation','stPhone','stParentPhone','stUserId','stUserPw'].forEach(id => {
+                         const key = id.replace('st','').replace(/^./, c=>c.toLowerCase()); 
+                         document.getElementById(id).value = s[key] || '';
+                    });
+                    document.getElementById('stUserId').value = s.userId || '';
+                    document.getElementById('stUserPw').value = s.userPw || '';
                 } else {
                     document.querySelectorAll('#studentModal input').forEach(i => i.value = '');
                 }
@@ -382,11 +442,14 @@
                 ['stName','stAge','stGender','stGrade','stAffiliation','stPhone','stParentPhone','stUserId','stUserPw'].forEach(k => d[k.replace('st','').replace(/^./, c=>c.toLowerCase())] = document.getElementById(k).value);
                 if(!d.name || !d.userId || !d.userPw) return alert("필수 정보 누락");
                 ui.showLoading("저장 중...");
-                if(id) await db.collection('students').doc(id).update(d);
-                else await db.collection('students').add({...d, status:'testing', joinedAt:new Date().toISOString()});
-                ui.closeModal('studentModal'); await admin.renderList(); ui.hideLoading();
+                try {
+                    if(id) { await db.collection('students').doc(id).update(d); if(currentUser?.id===id) admin.selectStudent(id); }
+                    else { await db.collection('students').add({...d, status:'testing', joinedAt:new Date().toISOString()}); }
+                    ui.closeModal('studentModal'); await admin.renderList();
+                } catch(e) { alert("저장 실패"); }
+                ui.hideLoading();
             },
-            deleteStudent: async () => { if(confirm("삭제?")) { await db.collection('students').doc(currentUser.id).delete(); admin.renderList(); document.getElementById('adminDetailView').classList.add('hidden'); document.getElementById('adminEmpty').classList.remove('hidden'); } },
+            deleteStudent: async () => { if(confirm("삭제?")) { await db.collection('students').doc(currentUser.id).delete(); admin.renderList(); if(window.innerWidth>=1024) {document.getElementById('adminDetailView').classList.add('hidden'); document.getElementById('adminEmpty').classList.remove('hidden');} else admin.showTab('students'); } },
             
             openNoticeModal: () => { 
                 const sel = document.getElementById('noticeTarget'); sel.innerHTML = '<option value="all">전체 학생</option>';
@@ -400,10 +463,12 @@
                 ui.closeModal('noticeModal'); admin.renderTab('notices');
             },
             renderNotices: async () => {
-                const s = await db.collection('notices').orderBy('createdAt','desc').get();
-                document.getElementById('adminNoticeList').innerHTML = s.empty ? '<p class="text-center text-slate-400 py-10 text-sm">공지 없음</p>' : s.docs.map(d=>`<div class="bg-slate-50 p-4 rounded-xl mb-2 border border-slate-100 flex justify-between"><div><h4 class="font-bold text-slate-800">${d.data().title}</h4><p class="text-xs text-slate-500 mt-1">${d.data().content}</p></div><button onclick="admin.delNotice('${d.id}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button></div>`).join('');
+                const list = document.getElementById('adminNoticeList');
+                const snap = await db.collection('notices').orderBy('createdAt', 'desc').get();
+                list.innerHTML = snap.empty ? '<p class="text-center text-slate-400 py-10 text-sm">공지 없음</p>' : snap.docs.map(d=>`<div class="bg-slate-50 p-4 rounded-xl mb-2 border border-slate-100 flex justify-between"><div><h4 class="font-bold text-slate-800">${d.data().title}</h4><p class="text-xs text-slate-500 mt-1">${d.data().content}</p></div><button onclick="admin.delNotice('${d.id}')" class="text-red-400 hover:text-red-600"><i class="fa-solid fa-trash"></i></button></div>`).join('');
             },
-            delNotice: async(id) => { if(confirm("삭제?")) { await db.collection('notices').doc(id).delete(); admin.renderTab('notices'); } },
+            delNotice: async (id) => { if(confirm("삭제?")) { await db.collection('notices').doc(id).delete(); admin.renderTab('notices'); } },
+            
             loadReports: async (id) => {
                 const snap = await db.collection('students').doc(id).collection('history').orderBy('date', 'desc').get();
                 document.getElementById('reportList').innerHTML = snap.empty ? '<p class="text-center py-10 text-slate-400 text-xs">기록 없음</p>' : snap.docs.map(d=> {
@@ -467,6 +532,7 @@
             startDaily: () => studentView.runSession(`Math worksheet ${currentUser.grade} focus ${currentUser.weakness}. 10 Qs JSON.`, '오늘의 학습'),
             runSession: async (prompt, title) => {
                 ui.showLoading("AI 문제 생성 중...");
+                isStudying = true; document.body.classList.add('locked-mode');
                 try {
                     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${GEMINI_API_KEY}`, {
                         method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({contents:[{parts:[{text:prompt}]}]})
@@ -482,12 +548,11 @@
                             </div>
                             <div class="p-6 border-t flex justify-end"><button onclick='studentView.submit(${JSON.stringify(data.questions)}, "${title}")' class="bg-indigo-600 text-white px-10 py-3 rounded-xl font-bold">제출하기</button></div>
                         </div>`;
-                } catch(e) { alert("AI 오류"); studentView.dash(); }
+                } catch(e) { isStudying=false; document.body.classList.remove('locked-mode'); alert("AI 오류"); studentView.dash(); }
                 ui.hideLoading();
             },
             submit: async (qs, title) => {
                 if(!confirm("제출?")) return;
-                ui.showLoading();
                 let score=0, mistakes=[];
                 qs.forEach((q,i) => { if(document.querySelector(`input[name="q_${i}"]:checked`)?.value == q.correctIndex) score++; else mistakes.push({question:q.text, correctAnswer:q.options[q.correctIndex], explanation:q.explanation||"오답"}); });
                 const final = Math.round(score/qs.length*100);
@@ -524,3 +589,5 @@
     </script>
 </body>
 </html>
+```
+```eof
